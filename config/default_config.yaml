@@ -1,0 +1,55 @@
+# Default Configuration for Image Generator
+
+# API Configuration
+api:
+  model: "gemini-2.0-flash-exp"
+  timeout: 60  # seconds
+  max_retries: 3
+  retry_delay: 2  # seconds
+  
+# Generation Settings
+generation:
+  images_per_prompt: 4  # Generate 4 images for each prompt
+  dry_run: false  # Set to true to test without API calls
+  save_prompts: true  # Save prompts used for each generation
+  
+# Output Settings
+output:
+  base_dir: "output/generated_images"
+  save_metadata: true  # Save JSON metadata with each image
+  filename_format: "{category}_{timestamp}_{index}.png"
+  
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  console_output: true
+  file_output: true
+  generation_log_dir: "logs/generation_logs"
+  debug_log_dir: "logs/debug_logs"
+  json_logs: true  # Enable structured JSON logging
+  
+# Validation Settings
+validation:
+  check_aspect_ratio: true
+  aspect_ratio_tolerance: 0.05  # 5% tolerance
+  min_file_size: 10240  # 10 KB minimum
+  max_file_size: 10485760  # 10 MB maximum
+  
+# Cost Tracking
+cost_tracking:
+  enabled: true
+  max_budget: 50.00  # USD
+  warn_threshold: 0.8  # Warn at 80% of budget
+  
+# Web UI Settings
+web:
+  host: "0.0.0.0"
+  port: 8080
+  debug: true
+  secret_key: "change-this-in-production"
+  
+# Session Settings
+session:
+  save_history: true
+  max_history_entries: 100
+  checkpoint_enabled: true

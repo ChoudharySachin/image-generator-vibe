@@ -1,0 +1,34 @@
+# Image Categories Configuration
+
+categories:
+  subtopic_cover:
+    name: "Subtopic Cover Images"
+    description: "Cover visuals for educational subtopics"
+    aspect_ratio: "16:9"
+    width: 1920
+    height: 1080
+    reference_dir: "reference_images/subtopic_cover"
+    
+  tutero_ai:
+    name: "Tutero AI Images"
+    description: "AI assistant helping students learn"
+    aspect_ratio: "1060:1500"
+    width: 1060
+    height: 1500
+    reference_dir: "reference_images/tutero_ai"
+    
+  classroom_activity:
+    name: "Classroom Activity Images"
+    description: "Students engaged in classroom learning"
+    aspect_ratio: "1060:1500"
+    width: 1060
+    height: 1500
+    reference_dir: "reference_images/classroom_activity"
+    
+  context_introduction:
+    name: "Context Introduction Images"
+    description: "Real-world contexts and applications"
+    aspect_ratio: "16:9"
+    width: 1920
+    height: 1080
+    reference_dir: "reference_images/context_introduction"
