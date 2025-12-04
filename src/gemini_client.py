@@ -422,7 +422,11 @@ Remember:
             self.logger.debug(f"Refining image with instructions: {instructions}")
             
             # Load base image
-            base_image_url = self._image_to_data_url(Path(base_image_path))
+            if str(base_image_path).startswith(('http://', 'https://')):
+                self.logger.info(f"Using remote URL for base image: {base_image_path}")
+                base_image_url = base_image_path
+            else:
+                base_image_url = self._image_to_data_url(Path(base_image_path))
             
             # Get reference images if category provided
             reference_images = []

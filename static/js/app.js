@@ -46,6 +46,11 @@ const refineInput = document.getElementById('refine-input');
 const confirmRefineBtn = document.getElementById('confirm-refine-btn');
 const closeModalBtns = document.querySelectorAll('.close-modal');
 
+// Preview Modal Elements
+const previewModal = document.getElementById('preview-modal');
+const previewImage = document.getElementById('preview-image');
+const closePreviewBtn = document.querySelector('.close-preview');
+
 // Progress & Results Elements
 const progressSection = document.getElementById('progress-section');
 const progressBar = document.getElementById('progress-bar');
@@ -72,7 +77,9 @@ function init() {
     setupModelSelection();
     setupGenerateButton();
     setupEditModal();
+    setupPreviewModal();
     setupSocketListeners();
+    loadHistory();
     console.log('App initialized');
 }
 
@@ -106,6 +113,24 @@ function openEditModal(index) {
     refineInput.focus();
 }
 
+async function uploadToImgBB(imageBlob) {
+    const formData = new FormData();
+    formData.append('image', imageBlob);
+    formData.append('key', '1afba94ad303d0430d1a528f1b33c1dc');
+
+    const response = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        return data.data.url;
+    } else {
+        throw new Error('ImgBB upload failed: ' + (data.error ? data.error.message : 'Unknown error'));
+    }
+}
+
 async function handleRefine() {
     const instructions = refineInput.value.trim();
 
@@ -136,15 +161,27 @@ async function handleRefine() {
     placeholder.innerHTML = `
         <div class="placeholder-content">
             <div class="spinner"></div>
-            <p>Refining Image ${originalIndex}...</p>
+            <p id="refine-status-${newIndex}">Uploading image...</p>
         </div>
     `;
 
     // Append to results grid
     resultsGrid.appendChild(placeholder);
 
-    // Send refinement request with the new index
     try {
+        // 1. Fetch the image blob
+        const imageResponse = await fetch(`/output/${image.filename}`);
+        const imageBlob = await imageResponse.blob();
+
+        // 2. Upload to ImgBB
+        const imgbbUrl = await uploadToImgBB(imageBlob);
+        console.log('Uploaded to ImgBB:', imgbbUrl);
+
+        // Update status
+        const statusEl = document.getElementById(`refine-status-${newIndex}`);
+        if (statusEl) statusEl.textContent = 'Refining...';
+
+        // 3. Send refinement request with the ImgBB URL
         const response = await fetch('/api/refine', {
             method: 'POST',
             headers: {
@@ -152,9 +189,9 @@ async function handleRefine() {
             },
             body: JSON.stringify({
                 category: state.category,
-                base_image_path: image.filepath,
+                base_image_path: imgbbUrl, // Send URL instead of local path
                 refinement_instructions: instructions,
-                index: newIndex // Pass new index to backend
+                index: newIndex
             })
         });
 
@@ -165,14 +202,44 @@ async function handleRefine() {
             console.log('Refinement started:', data.session_id);
         } else {
             showError('Failed to start refinement: ' + data.error);
-            // Remove the placeholder if failed
             placeholder.remove();
         }
     } catch (error) {
-        showError('Failed to start refinement: ' + error.message);
-        // Remove the placeholder if failed
+        console.error('Refinement error:', error);
+        showError('Failed: ' + error.message);
         placeholder.remove();
     }
+}
+
+// --- Preview Modal Logic ---
+
+function setupPreviewModal() {
+    if (!previewModal || !closePreviewBtn) return;
+
+    // Close on button click
+    closePreviewBtn.addEventListener('click', () => {
+        previewModal.classList.add('hidden');
+    });
+
+    // Close on outside click
+    previewModal.addEventListener('click', (e) => {
+        if (e.target === previewModal || e.target.classList.contains('preview-content')) {
+            previewModal.classList.add('hidden');
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !previewModal.classList.contains('hidden')) {
+            previewModal.classList.add('hidden');
+        }
+    });
+}
+
+function openPreviewModal(imageUrl) {
+    if (!previewModal || !previewImage) return;
+    previewImage.src = imageUrl;
+    previewModal.classList.remove('hidden');
 }
 
 // ... (existing code) ...
@@ -182,7 +249,9 @@ function updatePlaceholderWithImage(index, image) {
     if (placeholder && image.success) {
         placeholder.className = 'result-item fade-in';
         placeholder.innerHTML = `
-            <img src="/output/${image.filename}" alt="Generated Image ${index}">
+            <img src="/output/${image.filename}" alt="Generated Image ${index}"
+                 onclick="openPreviewModal('/output/${image.filename}')"
+                 style="cursor: pointer;">
             <button class="edit-btn" onclick="openEditModal(${index})" title="Refine Image">
                 ✏️
             </button>
@@ -221,12 +290,14 @@ function updatePlaceholderWithImage(index, image) {
                 <p>Failed to generate image ${index}</p>
                 <p class="error-detail">${image.error || 'Unknown error'}</p>
             </div>
-        `;
+            `;
     }
 }
 
 // Global function for edit button
+// Global function for edit button
 window.openEditModal = openEditModal;
+window.openPreviewModal = openPreviewModal;
 
 // --- Selection Logic ---
 
@@ -526,7 +597,7 @@ function updateGenerationSummary(result) {
         state.generatedImages.sort((a, b) => a.index - b.index).forEach(img => {
             const option = document.createElement('option');
             option.value = img.index;
-            option.textContent = `Image ${img.index}`;
+            option.textContent = `Image ${img.index} `;
             selectedImageSelect.appendChild(option);
         });
     }
@@ -578,6 +649,30 @@ document.addEventListener('DOMContentLoaded', init);
 
 // --- History Management ---
 
+function saveHistory() {
+    try {
+        localStorage.setItem('imageGenHistory', JSON.stringify(state.history));
+    } catch (e) {
+        console.error('Failed to save history:', e);
+    }
+}
+
+function loadHistory() {
+    const saved = localStorage.getItem('imageGenHistory');
+    if (saved) {
+        try {
+            state.history = JSON.parse(saved);
+            // Convert timestamp strings back to Date objects
+            state.history.forEach(item => {
+                item.timestamp = new Date(item.timestamp);
+            });
+            renderHistory();
+        } catch (e) {
+            console.error('Failed to load history:', e);
+        }
+    }
+}
+
 function addToHistory(prompt, category, count, models) {
     const historyItem = {
         id: Date.now(),
@@ -590,6 +685,7 @@ function addToHistory(prompt, category, count, models) {
     };
 
     state.history.unshift(historyItem); // Add to beginning
+    saveHistory();
     renderHistory();
     return historyItem.id;
 }
@@ -597,7 +693,14 @@ function addToHistory(prompt, category, count, models) {
 function updateHistoryImages(historyId, image) {
     const item = state.history.find(h => h.id === historyId);
     if (item) {
-        item.images.push(image);
+        // Check if image with this index already exists
+        const existingImgIndex = item.images.findIndex(img => img.index === image.index);
+        if (existingImgIndex >= 0) {
+            item.images[existingImgIndex] = image; // Update existing
+        } else {
+            item.images.push(image); // Add new
+        }
+        saveHistory();
         renderHistory(); // Re-render to show thumbnail
     }
 }
@@ -692,7 +795,13 @@ function loadHistoryItem(id) {
     resultsGrid.innerHTML = '';
 
     // Create placeholders for all images first
-    for (let i = 0; i < item.count; i++) {
+    // Calculate total slots needed: max of requested count or highest image index (for refined images)
+    const maxIndex = item.images && item.images.length > 0
+        ? Math.max(...item.images.map(img => img.index))
+        : 0;
+    const totalSlots = Math.max(item.count, maxIndex);
+
+    for (let i = 0; i < totalSlots; i++) {
         const placeholder = document.createElement('div');
         placeholder.className = 'result-item placeholder';
         placeholder.id = `result-item-${i + 1}`;
