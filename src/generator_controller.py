@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 import json
 from typing import Dict, Any, List, Optional, Callable
+import time
+import random
 
 from config_manager import ConfigManager
 from logger import ImageGeneratorLogger
@@ -27,6 +29,151 @@ class GeneratorController:
         self.validator = ImageValidator(self.config, self.logger)
         
         self.logger.info("Generator Controller initialized")
+    
+    def _detect_style_from_input(self, user_input: str) -> str:
+        """Detect if user specified a style in their input
+        
+        Args:
+            user_input: User's input text
+            
+        Returns:
+            Style ID if detected, None otherwise
+        """
+        user_input_lower = user_input.lower()
+        
+        # Style detection keywords
+        style_keywords = {
+            'glossy_3d': ['glossy', 'glass', 'translucent', 'transparent'],
+            'watercolor': ['watercolor', 'watercolour', 'painted', 'artistic'],
+            'hand_drawn_chalk': ['chalk', 'chalkboard', 'blackboard', 'hand-drawn', 'hand drawn'],
+            'paper_craft': ['paper', 'papercraft', 'paper-craft', 'cardboard', 'layered'],
+            'flat_3d': ['flat', 'matte'],
+            'minimal_clean_3d': ['minimal', 'clean', 'simple'],
+            'holographic': ['holographic', 'holo', 'iridescent', 'rainbow', 'prismatic']
+        }
+        
+        for style_id, keywords in style_keywords.items():
+            for keyword in keywords:
+                if keyword in user_input_lower:
+                    self.logger.info(f"Detected style '{style_id}' from keyword '{keyword}'")
+                    return style_id
+        
+        return None
+    
+    def _select_styles_for_generation(self, category: str, count: int, user_input: str, specified_style: str = None) -> list:
+        """Select styles for image generation based on subtopic and year level
+        
+        Args:
+            category: Image category
+            count: Number of images to generate
+            user_input: User's input text
+            specified_style: Style specified by user (if any)
+            
+        Returns:
+            List of style IDs to use for each image
+        """
+        # Only apply to subtopic_cover category
+        if category != 'subtopic_cover':
+            return [None] * count
+        
+        # Get available styles from config
+        category_config = self.config.get_category(category)
+        styles = category_config.get('styles', [])
+        available_style_ids = [s['id'] for s in styles if s['id'] != 'original']
+        
+        if not available_style_ids:
+            return [None] * count
+        
+        # Check if user specified a style in their input
+        detected_style = self._detect_style_from_input(user_input)
+        
+        # If style was specified (either explicitly or detected), use it for all images
+        if specified_style and specified_style != 'original':
+            self.logger.info(f"Using specified style '{specified_style}' for all {count} images")
+            return [specified_style] * count
+        elif detected_style:
+            self.logger.info(f"Using detected style '{detected_style}' for all {count} images")
+            return [detected_style] * count
+        
+        # Intelligent style selection based on subtopic and year level
+        selected_styles = self._select_appropriate_styles(user_input, count, available_style_ids)
+        
+        self.logger.info(f"Intelligently selected styles for {count} images: {selected_styles}")
+        return selected_styles
+    
+    def _select_appropriate_styles(self, user_input: str, count: int, available_styles: list) -> list:
+        """Select appropriate styles based on subtopic characteristics and year level
+        
+        Args:
+            user_input: User's input containing subtopic and year level
+            count: Number of styles to select
+            available_styles: List of available style IDs
+            
+        Returns:
+            List of selected style IDs
+        """
+        user_input_lower = user_input.lower()
+        
+        # Extract year level (if mentioned)
+        year_level = 8  # default
+        import re
+        year_match = re.search(r'year\s+(\d+)', user_input_lower)
+        if year_match:
+            year_level = int(year_match.group(1))
+        
+        # Define style preferences based on characteristics
+        style_preferences = {
+            'young_friendly': ['watercolor', 'paper_craft', 'flat_3d'],  # Years 1-6
+            'middle_balanced': ['minimal_clean_3d', 'flat_3d', 'paper_craft', 'watercolor'],  # Years 7-9
+            'advanced_sophisticated': ['glossy_3d', 'holographic', 'minimal_clean_3d'],  # Years 10+
+            
+            'geometric_precise': ['minimal_clean_3d', 'glossy_3d', 'flat_3d'],  # Geometry, shapes, angles
+            'algebraic_clean': ['minimal_clean_3d', 'hand_drawn_chalk', 'flat_3d'],  # Algebra, equations
+            'data_visual': ['flat_3d', 'paper_craft', 'minimal_clean_3d'],  # Graphs, data, statistics
+            'abstract_artistic': ['watercolor', 'holographic', 'glossy_3d'],  # Probability, patterns
+        }
+        
+        # Determine topic category
+        geometric_keywords = ['shape', 'angle', 'triangle', 'circle', 'polygon', 'geometry', 'area', 'perimeter', 'volume', 'bearing']
+        algebraic_keywords = ['algebra', 'equation', 'expression', 'variable', 'solve', 'linear', 'quadratic']
+        data_keywords = ['graph', 'data', 'statistics', 'chart', 'plot', 'mean', 'median', 'mode']
+        abstract_keywords = ['probability', 'pattern', 'sequence', 'ratio', 'proportion', 'fraction']
+        
+        # Select appropriate style pool
+        if year_level <= 6:
+            style_pool = style_preferences['young_friendly']
+        elif year_level <= 9:
+            style_pool = style_preferences['middle_balanced']
+        else:
+            style_pool = style_preferences['advanced_sophisticated']
+        
+        # Refine based on topic type
+        if any(keyword in user_input_lower for keyword in geometric_keywords):
+            style_pool = [s for s in style_preferences['geometric_precise'] if s in available_styles]
+        elif any(keyword in user_input_lower for keyword in algebraic_keywords):
+            style_pool = [s for s in style_preferences['algebraic_clean'] if s in available_styles]
+        elif any(keyword in user_input_lower for keyword in data_keywords):
+            style_pool = [s for s in style_preferences['data_visual'] if s in available_styles]
+        elif any(keyword in user_input_lower for keyword in abstract_keywords):
+            style_pool = [s for s in style_preferences['abstract_artistic'] if s in available_styles]
+        
+        # Filter to only available styles
+        style_pool = [s for s in style_pool if s in available_styles]
+        
+        # If pool is empty, use all available styles
+        if not style_pool:
+            style_pool = available_styles
+        
+        # Select different styles from the pool
+        if count <= len(style_pool):
+            selected = random.sample(style_pool, count)
+        else:
+            # Need more styles than available in pool, use all pool + random from available
+            selected = style_pool.copy()
+            remaining = count - len(selected)
+            selected.extend(random.choices(available_styles, k=remaining))
+        
+        return selected
     
     def generate(
         self,
@@ -90,13 +237,17 @@ class GeneratorController:
         # Start generation
         self.logger.log_generation_start(category, user_input, count)
         
+        # Select styles for each image (for subtopic_cover category)
+        specified_style = kwargs.get('style')
+        selected_styles = self._select_styles_for_generation(category, count, user_input, specified_style)
+        
         if progress_callback:
             progress_callback(0, count + 2, "Building prompt...")
         
-        # Build prompt
+        # Build prompt (base prompt without style for non-subtopic categories)
         try:
-            prompt = self.prompt_builder.build_prompt(category, user_input, **kwargs)
-            self.logger.info(f"Prompt built successfully ({len(prompt)} characters)")
+            base_prompt = self.prompt_builder.build_prompt(category, user_input, **kwargs)
+            self.logger.info(f"Base prompt built successfully ({len(base_prompt)} characters)")
         except Exception as e:
             self.logger.error(f"Failed to build prompt: {str(e)}")
             return {
@@ -111,32 +262,56 @@ class GeneratorController:
         base_filename = self._generate_base_filename(category, user_input)
         output_dir = self.config.get_output_dir()
         
-        # Callback wrapper to save image and notify
-        def handle_generated_image(index, image_data):
-            # Save the image immediately
-            saved_info = self._save_single_image(image_data, output_dir, base_filename, index)
-            
-            # Notify caller
-            if on_image_generated and saved_info['success']:
-                on_image_generated(index, saved_info)
+        # Generate images one by one with individual styles
+        images = []
+        saved_images = []
         
-        # Generate images
-        images = self.gemini_client.generate_multiple_images(
-            prompt,
-            count,
-            category=category,
-            progress_callback=lambda curr, total, status: progress_callback(curr + 1, count + 2, status) if progress_callback else None,
-            models=models_to_use,
-            on_image_generated=handle_generated_image
-        )
+        for i in range(count):
+            # Get style for this image
+            image_style = selected_styles[i] if i < len(selected_styles) else None
+            
+            # Build prompt for this specific image with its style
+            if image_style:
+                image_kwargs = {**kwargs, 'style': image_style}
+                try:
+                    image_prompt = self.prompt_builder.build_prompt(category, user_input, **image_kwargs)
+                    self.logger.info(f"Image {i+1} using style '{image_style}'")
+                except Exception as e:
+                    self.logger.warning(f"Failed to build styled prompt for image {i+1}, using base: {str(e)}")
+                    image_prompt = base_prompt
+            else:
+                image_prompt = base_prompt
+            
+            # Progress update
+            if progress_callback:
+                progress_callback(i + 1, count + 2, f"Generating image {i+1}/{count}...")
+            
+            # Generate single image
+            try:
+                model_to_use = models_to_use[i] if i < len(models_to_use) else models_to_use[0]
+                image_data = self.gemini_client.generate_image(
+                    image_prompt,
+                    category=category,
+                    model=model_to_use
+                )
+                images.append(image_data)
+                
+                # Save immediately
+                saved_info = self._save_single_image(image_data, output_dir, base_filename, i)
+                saved_images.append(saved_info)
+                
+                # Notify caller
+                if on_image_generated and saved_info['success']:
+                    on_image_generated(i, saved_info)
+                    
+            except Exception as e:
+                self.logger.error(f"Failed to generate image {i+1}: {str(e)}")
+                images.append(None)
+                saved_images.append({'success': False, 'error': str(e)})
+        
         
         if progress_callback:
             progress_callback(count + 1, count + 2, "Validating and saving...")
-        
-        # Re-construct saved_images list from the already saved files (or save failed ones)
-        saved_images = []
-        for i, img_data in enumerate(images):
-            saved_images.append(self._save_single_image(img_data, output_dir, base_filename, i))
         
         # Validate
         validation_summary = self.validator.validate_batch(

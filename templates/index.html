@@ -10,132 +10,176 @@
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>
-                <img src="{{ url_for('static', filename='images/tutero-logo.png') }}" alt="Tutero Logo"
-                    class="header-logo">
-                Tutero Image Generator
-            </h1>
-        </header>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>History</h2>
+            </div>
+            <div id="history-list" class="history-list">
+                <!-- History items will be added here -->
+                <div class="empty-history">No history yet</div>
+            </div>
+        </aside>
 
-        <main>
-            <div class="generator-card">
-                <div class="form-section">
-                    <!-- Image Type Selection -->
-                    <div class="selection-section">
-                        <label class="section-label">1. Select Image Type</label>
-                        <div class="tile-grid" id="category-grid">
-                            <div class="tile" data-value="subtopic_cover">
-                                <div class="tile-icon">📚</div>
-                                <div class="tile-label">Subtopic Cover</div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <header>
+                    <h1>
+                        <img src="{{ url_for('static', filename='images/tutero-logo.png') }}" alt="Tutero Logo"
+                            class="header-logo">
+                        Tutero Image Generator
+                    </h1>
+                </header>
+
+                <main>
+                    <div class="generator-card">
+                        <div class="form-section">
+                            <!-- Image Type Selection -->
+                            <div class="selection-section">
+                                <label class="section-label">1. Select Image Type</label>
+                                <div class="tile-grid" id="category-grid">
+                                    <div class="tile" data-value="subtopic_cover">
+                                        <div class="tile-icon">📚</div>
+                                        <div class="tile-label">Subtopic Cover</div>
+                                    </div>
+                                    <div class="tile" data-value="tutero_ai">
+                                        <div class="tile-icon">🤖</div>
+                                        <div class="tile-label">Tutero AI</div>
+                                    </div>
+                                    <div class="tile" data-value="classroom_activity">
+                                        <div class="tile-icon">🏫</div>
+                                        <div class="tile-label">Classroom Activity</div>
+                                    </div>
+                                    <div class="tile" data-value="context_introduction">
+                                        <div class="tile-icon">🌍</div>
+                                        <div class="tile-label">Context Intro</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="tile" data-value="tutero_ai">
-                                <div class="tile-icon">🤖</div>
-                                <div class="tile-label">Tutero AI</div>
+
+                            <!-- Style Selection (Hidden - Automatic now) -->
+                            <div class="selection-section hidden" id="style-section" style="display: none;">
+                                <label class="section-label">2. Select Style</label>
+                                <div class="tile-grid style-grid" id="style-grid">
+                                    <div class="tile style-tile" data-value="original">
+                                        <div class="tile-icon">📐</div>
+                                        <div class="tile-label">Original</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="glossy_3d">
+                                        <div class="tile-icon">💎</div>
+                                        <div class="tile-label">Glossy 3D</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="flat_3d">
+                                        <div class="tile-icon">🎨</div>
+                                        <div class="tile-label">Flat 3D</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="minimal_clean_3d">
+                                        <div class="tile-icon">✨</div>
+                                        <div class="tile-label">Minimal 3D</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="paper_craft">
+                                        <div class="tile-icon">📄</div>
+                                        <div class="tile-label">Paper-craft</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="watercolor">
+                                        <div class="tile-icon">🖌️</div>
+                                        <div class="tile-label">Watercolor</div>
+                                    </div>
+                                    <div class="tile style-tile" data-value="hand_drawn_chalk">
+                                        <div class="tile-icon">🖍️</div>
+                                        <div class="tile-label">Chalk</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="tile" data-value="classroom_activity">
-                                <div class="tile-icon">🏫</div>
-                                <div class="tile-label">Classroom Activity</div>
+
+                            <!-- Image Count Selection -->
+                            <div class="selection-section hidden" id="count-section">
+                                <label class="section-label">2. Number of Images</label>
+                                <div class="tile-grid count-grid" id="count-grid">
+                                    <div class="tile count-tile" data-value="1">1</div>
+                                    <div class="tile count-tile" data-value="2">2</div>
+                                    <div class="tile count-tile" data-value="3">3</div>
+                                    <div class="tile count-tile" data-value="4">4</div>
+                                </div>
                             </div>
-                            <div class="tile" data-value="context_introduction">
-                                <div class="tile-icon">🌍</div>
-                                <div class="tile-label">Context Intro</div>
+
+                            <!-- Model Selection -->
+                            <div class="selection-section hidden" id="model-section">
+                                <label class="section-label">3. Select Model</label>
+                                <div class="tile-grid model-grid" id="model-grid">
+                                    <div class="tile model-tile" data-value="gemini-1.5-flash">
+                                        <div class="tile-icon">⚡</div>
+                                        <div class="tile-label">Gemini Flash</div>
+                                    </div>
+                                    <div class="tile model-tile" data-value="gemini-1.5-pro">
+                                        <div class="tile-icon">🧠</div>
+                                        <div class="tile-label">Gemini Pro</div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Image Count Selection -->
-                    <div class="selection-section hidden" id="count-section">
-                        <label class="section-label">2. Number of Images</label>
-                        <div class="tile-grid count-grid" id="count-grid">
-                            <div class="tile count-tile selected" data-value="1">1</div>
-                            <div class="tile count-tile" data-value="2">2</div>
-                            <div class="tile count-tile" data-value="3">3</div>
-                            <div class="tile count-tile" data-value="4">4</div>
-                        </div>
-                    </div>
-
-                    <!-- Model Selection -->
-                    <div class="selection-section hidden" id="model-section">
-                        <label class="section-label">3. Select Models</label>
-                        <div class="tile-grid model-grid" id="model-grid">
-                            <div class="tile model-tile selected" data-value="google/gemini-2.5-flash-image-preview">
-                                <div class="tile-icon">⚡</div>
-                                <div class="tile-label">Gemini Flash</div>
+                            <!-- Instructions -->
+                            <div class="input-group hidden" id="instruction-section">
+                                <label for="prompt">4. Describe the image</label>
+                                <textarea id="prompt" class="form-control"
+                                    placeholder="E.g., A group of students measuring the height of a tree using shadows..."
+                                    rows="2"></textarea>
+                                <div class="help-text">Be specific about the setting, characters, and action.</div>
                             </div>
-                            <div class="tile model-tile" data-value="google/gemini-3-pro-image-preview">
-                                <div class="tile-icon">🚀</div>
-                                <div class="tile-label">Gemini Pro</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Instruction Input (Hidden initially) -->
-                    <div class="input-group hidden" id="instruction-section">
-                        <label for="user-input" class="section-label">4. Describe your image</label>
-                        <textarea id="user-input" class="form-control" rows="4"
-                            placeholder="Describe the specific scene, context, or activity..."></textarea>
-                        <p class="help-text">Be specific about the context (e.g., "fractions", "basketball court",
-                            "group work")</p>
-                    </div>
-
-                    <div class="button-group">
-                        <button id="generate-btn" class="btn btn-primary" disabled>
-                            <span class="btn-text">Generate Images</span>
-                            <span class="btn-icon">✨</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="progress-section" class="progress-section" style="display: none;">
-                    <div class="progress-bar-container">
-                        <div id="progress-bar" class="progress-bar"></div>
-                    </div>
-                    <p id="progress-status" class="progress-status">Initializing...</p>
-                </div>
-
-                <div id="results-section" class="results-section" style="display: none;">
-                    <h2>Generated Images</h2>
-                    <div id="results-grid" class="results-grid"></div>
-
-                    <div class="results-info">
-                        <p id="results-summary"></p>
-                    </div>
-                </div>
-                <!-- Edit Modal -->
-                <div id="edit-modal" class="modal hidden">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Refine Image</h3>
-                            <button class="close-modal">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="modal-description">Describe how you want to change this image:</p>
-                            <textarea id="refine-input" class="form-control" rows="4"
-                                placeholder="e.g., Make the background brighter, remove the text..."></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-secondary close-modal">Cancel</button>
-                            <button id="confirm-refine-btn" class="btn btn-primary">
-                                <span class="btn-text">Refine</span>
+                            <button id="generate-btn" class="btn btn-primary hidden">
+                                <span class="btn-text">Generate Images</span>
                                 <span class="btn-icon">✨</span>
                             </button>
                         </div>
+
+                        <!-- Progress Section -->
+                        <div id="progress-section" class="progress-section" style="display: none;">
+                            <div class="progress-bar-container">
+                                <div id="progress-bar" class="progress-bar"></div>
+                            </div>
+                            <p id="progress-status" class="progress-status">Initializing...</p>
+                        </div>
+
+                        <!-- Results Section -->
+                        <div id="results-section" class="results-section" style="display: none;">
+                            <h2>Generated Images</h2>
+                            <div id="results-grid" class="results-grid"></div>
+                            <div class="results-info">
+                                <p id="results-summary"></p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Follow-up Section (Legacy - can be removed or kept hidden) -->
-                <div id="follow-up-section" class="follow-up-section hidden">
-                    <!-- ... legacy content ... -->
-                </div>
-
+                </main>
             </div>
-        </main>
-
-
+        </div>
     </div>
 
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Refine Image</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="refine-input">What would you like to change?</label>
+                    <textarea id="refine-input" class="form-control"
+                        placeholder="E.g., Make the background brighter, remove the text..." rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary close-modal-btn">Cancel</button>
+                    <button id="confirm-refine-btn" class="btn btn-primary">
+                        <span class="btn-text">Refine</span>
+                        <span class="btn-icon">✨</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 

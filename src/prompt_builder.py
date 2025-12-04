@@ -79,13 +79,113 @@ class PromptBuilder:
         Args:
             subtopic: Subtopic name
             config: Category configuration
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (including 'style')
             
         Returns:
             Prompt string
         """
         year_level = kwargs.get('year_level', 'Year 8')
+        style = kwargs.get('style', 'original')
         
+        # Check if style templates are available
+        styles = config.get('styles', [])
+        style_template = None
+        
+        # Find the selected style template
+        for style_config in styles:
+            if style_config['id'] == style:
+                style_template = style_config.get('prompt_template', '')
+                break
+        
+        # If style has a template, use it; otherwise use default
+        if style_template:
+            # Determine if this is an algebra-related topic
+            is_algebra = any(keyword in subtopic.lower() for keyword in ['algebra', 'equation', 'expression', 'variable', 'solve', 'linear', 'quadratic', 'polynomial'])
+            
+            # Build NO TEXT warning based on topic type
+            if is_algebra:
+                text_warning = """
+ABSOLUTELY NO TEXT ALLOWED (with limited algebra exception):
+- NO subtopic names, NO titles, NO labels, NO year levels
+- NO words like "Addition", "Subtraction", "Year 1", etc.
+- NO descriptive text of any kind
+- For ALGEBRA topics ONLY: Simple variables (x, y, a, b) or basic terms (2x, x²) are allowed
+- Even for algebra: NO full equations written out, NO explanatory text
+- The image should be PURELY VISUAL - geometric shapes and forms only
+"""
+            else:
+                text_warning = """
+ABSOLUTELY NO TEXT ALLOWED - ZERO TOLERANCE:
+- NO text, NO letters, NO numbers, NO words, NO labels
+- NO subtopic names (like "Addition", "Fractions", "Geometry", "Calendar Interpretation")
+- NO year levels (like "Year 1", "Year 3", "Year 7")
+- NO titles, NO captions, NO annotations
+- NO time labels (like "1 week", "3 days", "Monday", "January")
+- NO mathematical notation or symbols written as text
+- The image MUST be 100% VISUAL ONLY - pure geometric shapes and forms
+- If you're tempted to add text, DON'T - use visual representation instead
+"""
+            
+            # Build the core content requirement with ultra-specific relevance requirements
+            # CRITICAL: Put this BEFORE the style template so it takes priority
+            core_content = f"""{text_warning}
+
+CRITICAL TASK: Create an image representing the mathematical subtopic "{subtopic}" for {year_level} students.
+
+ULTRA-CRITICAL RELEVANCE RULES - READ CAREFULLY:
+- Show ONLY what is directly relevant to "{subtopic}" - ABSOLUTELY NOTHING ELSE
+- For "Calendar" or "Calendar Interpretation": Show ONLY a simple calendar grid (rows and columns of squares) - NO text labels, NO weather icons, NO birthday cakes, NO decorative elements, NO "1 week", NO "3 days", NO month names
+- For "Time": Show ONLY a simple clock face with hands - NO digital displays, NO text, NO calendars
+- For "Cartesian Plane": Show ONLY x and y axes with maybe a single point - NO labels, NO graphs
+- For "Simultaneous Linear Equations": Show ONLY two intersecting straight lines - NO text, NO labels
+- For "Fractions": Show ONLY divided shapes representing parts - NO unrelated shapes
+- For "Angles": Show ONLY angle formation with two rays - NO protractors
+- For "{subtopic}": Show ONLY the core visual element - ask "What is the ONE thing that shows {subtopic}?"
+
+WHAT TO ABSOLUTELY AVOID:
+- NO weather icons (sun, clouds, rain) unless subtopic is specifically about weather
+- NO birthday cakes, party hats, or celebration icons unless subtopic is about celebrations
+- NO clocks unless subtopic is specifically about time
+- NO calendars unless subtopic is specifically about calendars
+- NO scales, rulers, or measuring tools unless subtopic is about measurement
+- NO pie charts or graphs unless subtopic is specifically about that graph type
+- NO decorative circles, rings, or ornamental shapes
+- NO text labels of any kind (including "1 week", "3 days", month names, etc.)
+
+MINIMALISM - EXTREME SIMPLICITY:
+- Use 1-2 key elements maximum (often just 1 is enough!)
+- Each element must DIRECTLY represent "{subtopic}"
+- Remove anything that doesn't help explain "{subtopic}"
+- Think: "What is the ONE thing that shows {subtopic}?"
+
+CENTERING:
+- ALL elements PERFECTLY CENTERED vertically and horizontally
+- Generous empty space on ALL SIDES
+- Balanced, symmetrical composition
+
+"""
+            
+            # NOW add the style template AFTER the critical requirements
+            prompt = core_content + "\n\nVISUAL STYLE TO APPLY:\n" + style_template
+            
+            # Add final reminder
+            prompt += f"""
+
+FINAL CRITICAL REMINDER:
+- Do NOT include "{subtopic}" as text anywhere in the image
+- Do NOT include "{year_level}" as text anywhere in the image  
+- Do NOT include ANY words, labels, or text of any kind
+- Do NOT include elements unrelated to "{subtopic}"
+- Show ONLY the minimal visual representation of "{subtopic}"
+"""
+            
+            # Ensure aspect ratio is included
+            if 'Aspect ratio' not in prompt:
+                prompt = f"{prompt}\nAspect ratio {config['aspect_ratio']} ({config['width']}x{config['height']}) - LANDSCAPE orientation."
+            
+            return prompt
+        
+        # Default/Original style prompt
         prompt = f"""Create a minimal, flat 3D illustration representing the mathematical subtopic "{subtopic}" for {year_level}.
 
 Aspect ratio {config['aspect_ratio']} ({config['width']}x{config['height']}) - LANDSCAPE orientation.

@@ -21,18 +21,24 @@ let state = {
     models: ['google/gemini-2.5-flash-image-preview'],
     generatedImages: [],
     currentSessionId: null,
-    editingIndex: null
+    editingIndex: null,
+    history: [],
+    currentHistoryId: null,
+    style: null  // Automatic selection by backend
 };
 
 // UI Elements
+const historyList = document.getElementById('history-list');
 const categoryGrid = document.getElementById('category-grid');
+const styleSection = document.getElementById('style-section');
+const styleGrid = document.getElementById('style-grid');
 const countSection = document.getElementById('count-section');
 const countGrid = document.getElementById('count-grid');
 const modelSection = document.getElementById('model-section');
 const modelGrid = document.getElementById('model-grid');
 const instructionSection = document.getElementById('instruction-section');
 const generateBtn = document.getElementById('generate-btn');
-const userInput = document.getElementById('user-input');
+const userInput = document.getElementById('prompt');
 
 // Edit Modal Elements
 const editModal = document.getElementById('edit-modal');
@@ -61,6 +67,7 @@ function init() {
     if (!categoryGrid) console.error('categoryGrid is missing');
 
     setupCategorySelection();
+    setupStyleSelection();
     setupCountSelection();
     setupModelSelection();
     setupGenerateButton();
@@ -201,6 +208,11 @@ function updatePlaceholderWithImage(index, image) {
         } else {
             state.generatedImages.push(imageData);
         }
+
+        // Update history
+        if (state.currentHistoryId) {
+            updateHistoryImages(state.currentHistoryId, imageData);
+        }
     } else if (placeholder) {
         // ... error handling ...
         placeholder.className = 'result-item error';
@@ -293,7 +305,10 @@ function showNextSections() {
             if (modelSection) modelSection.classList.remove('hidden');
             setTimeout(() => {
                 if (instructionSection) instructionSection.classList.remove('hidden');
-                if (generateBtn) generateBtn.disabled = false;
+                if (generateBtn) {
+                    generateBtn.classList.remove('hidden');
+                    generateBtn.disabled = false;
+                }
             }, 100);
         }, 100);
     }
@@ -330,6 +345,9 @@ function setupGenerateButton() {
         resultsGrid.innerHTML = '';
         state.generatedImages = [];
 
+        // Add to history
+        state.currentHistoryId = addToHistory(prompt, state.category, state.count, state.models);
+
         // Create placeholders
         for (let i = 0; i < state.count; i++) {
             const placeholder = document.createElement('div');
@@ -354,7 +372,8 @@ function setupGenerateButton() {
                 category: state.category,
                 user_input: prompt,
                 count: state.count,
-                selected_models: state.models
+                selected_models: state.models,
+                style: state.style  // Include style for subtopic_cover
             })
         })
             .then(response => response.json())
@@ -556,3 +575,168 @@ window.downloadImage = function (filename, index) {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// --- History Management ---
+
+function addToHistory(prompt, category, count, models) {
+    const historyItem = {
+        id: Date.now(),
+        timestamp: new Date(),
+        prompt: prompt,
+        category: category,
+        count: count,
+        models: models,
+        images: [] // Will be populated as images are generated
+    };
+
+    state.history.unshift(historyItem); // Add to beginning
+    renderHistory();
+    return historyItem.id;
+}
+
+function updateHistoryImages(historyId, image) {
+    const item = state.history.find(h => h.id === historyId);
+    if (item) {
+        item.images.push(image);
+        renderHistory(); // Re-render to show thumbnail
+    }
+}
+
+function renderHistory() {
+    if (!historyList) return;
+
+    historyList.innerHTML = '';
+
+    if (state.history.length === 0) {
+        historyList.innerHTML = '<div class="empty-history">No history yet</div>';
+        return;
+    }
+
+    state.history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        if (item.id === state.currentHistoryId) {
+            div.classList.add('active');
+        }
+        div.onclick = () => loadHistoryItem(item.id);
+
+        // Format time
+        const time = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Preview images (first 3)
+        let imagesHtml = '';
+        if (item.images && item.images.length > 0) {
+            imagesHtml = '<div class="history-images-preview">';
+            item.images.slice(0, 3).forEach(img => {
+                if (img.filename) {
+                    imagesHtml += `<img src="/output/${img.filename}" class="history-thumb">`;
+                }
+            });
+            imagesHtml += '</div>';
+        }
+
+        div.innerHTML = `
+            <div class="history-meta">
+                <span>${time}</span>
+                <span>${item.images.length}/${item.count}</span>
+            </div>
+            <div class="history-prompt">${item.prompt}</div>
+            ${imagesHtml}
+        `;
+
+        historyList.appendChild(div);
+    });
+}
+
+function loadHistoryItem(id) {
+    const item = state.history.find(h => h.id === id);
+    if (!item) return;
+
+    // Restore State
+    state.category = item.category;
+    state.count = item.count;
+    state.models = item.models;
+    state.generatedImages = item.images || [];
+    state.currentHistoryId = item.id;
+
+    // Restore UI
+    // 1. Select Category
+    document.querySelectorAll('#category-grid .tile').forEach(t => {
+        t.classList.toggle('selected', t.dataset.value === item.category);
+    });
+
+    // 2. Select Count
+    document.querySelectorAll('#count-grid .tile').forEach(t => {
+        t.classList.toggle('selected', parseInt(t.dataset.value) === item.count);
+    });
+
+    // 3. Select Model
+    document.querySelectorAll('#model-grid .tile').forEach(t => {
+        // Handle array of models
+        const isSelected = item.models.includes(t.dataset.value);
+        t.classList.toggle('selected', isSelected);
+    });
+
+    // 4. Set Prompt
+    const promptInput = document.getElementById('prompt'); // Ensure correct ID
+    if (promptInput) promptInput.value = item.prompt;
+
+    // 5. Show Sections
+    if (countSection) countSection.classList.remove('hidden');
+    if (modelSection) modelSection.classList.remove('hidden');
+    if (instructionSection) instructionSection.classList.remove('hidden');
+    if (generateBtn) generateBtn.classList.remove('hidden');
+
+    // 6. Show Results
+    if (resultsSection) resultsSection.style.display = 'block';
+    resultsGrid.innerHTML = '';
+
+    // Create placeholders for all images first
+    for (let i = 0; i < item.count; i++) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'result-item placeholder';
+        placeholder.id = `result-item-${i + 1}`;
+        placeholder.innerHTML = `
+            <div class="placeholder-content">
+                <div class="spinner"></div>
+                <p class="placeholder-status">Loading...</p>
+            </div>
+        `;
+        resultsGrid.appendChild(placeholder);
+    }
+
+    // Re-render images with success flag
+    item.images.forEach(img => {
+        const imageWithSuccess = {
+            ...img,
+            success: true
+        };
+        updatePlaceholderWithImage(img.index, imageWithSuccess);
+    });
+
+    // Highlight active history item
+    document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+    // We'd need to find the element again or re-render, but simple re-render works
+    renderHistory();
+}
+
+function setupStyleSelection() {
+    if (!styleGrid) return;
+
+    const tiles = styleGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            // Remove selected class from all style tiles
+            tiles.forEach(t => t.classList.remove('selected'));
+
+            // Select clicked tile
+            tile.classList.add('selected');
+            state.style = tile.dataset.value;
+            console.log('Style set to:', state.style);
+        });
+    });
+
+    // Set default selection
+    const defaultTile = styleGrid.querySelector('[data-value="original"]');
+    if (defaultTile) defaultTile.classList.add('selected');
+}

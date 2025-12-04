@@ -79,6 +79,7 @@ def generate_images():
         year_level = data.get('year_level', 'Year 8')
         age = data.get('age', 'middle school')
         math_concept = data.get('math_concept', 'mathematical concepts')
+        style = data.get('style', 'original')  # For subtopic_cover category
         
         # Create session ID
         session_id = controller.logger.session_id
@@ -113,7 +114,8 @@ def generate_images():
                     on_image_generated=on_image_generated,
                     year_level=year_level,
                     age=age,
-                    math_concept=math_concept
+                    math_concept=math_concept,
+                    style=style
                 )
                 
                 active_sessions[session_id] = result
