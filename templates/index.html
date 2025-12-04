@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Generator - Educational Content</title>
+    <!-- Google Fonts Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
@@ -98,10 +101,10 @@
                             <div class="selection-section hidden" id="count-section">
                                 <label class="section-label">2. Number of Images</label>
                                 <div class="tile-grid count-grid" id="count-grid">
-                                    <div class="tile count-tile" data-value="1">1</div>
-                                    <div class="tile count-tile" data-value="2">2</div>
-                                    <div class="tile count-tile" data-value="3">3</div>
-                                    <div class="tile count-tile" data-value="4">4</div>
+                                    <div class="tile count-tile" data-value="1"><span class="count-label">1</span></div>
+                                    <div class="tile count-tile" data-value="2"><span class="count-label">2</span></div>
+                                    <div class="tile count-tile" data-value="3"><span class="count-label">3</span></div>
+                                    <div class="tile count-tile" data-value="4"><span class="count-label">4</span></div>
                                 </div>
                             </div>
 

@@ -332,7 +332,7 @@ class GeneratorController:
             'success': success_count > 0,
             'category': category,
             'user_input': user_input,
-            'prompt': prompt,
+            'prompt': base_prompt,
             'total_requested': count,
             'total_generated': success_count,
             'images': saved_images,
