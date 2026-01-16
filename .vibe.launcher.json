@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "name": "Main App",
+      "start": "pnpm dev:full",
+      "stop": "",
+      "ports": [
+        5173,
+        3001
+      ]
+    }
+  ]
+}
