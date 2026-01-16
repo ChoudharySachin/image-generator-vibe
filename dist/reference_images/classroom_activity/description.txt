@@ -1,0 +1,230 @@
+# CLASSROOM ACTIVITY IMAGES - STYLE GUIDE & PROMPT TEMPLATE
+
+## Visual Style Analysis (Based on Reference Images)
+
+### Overall Aesthetic
+- **Style**: Vibrant, illustrated, semi-realistic character design
+- **Tone**: Energetic, collaborative, engaging, positive
+- **Setting**: Modern classroom or learning environment
+- **Focus**: Students actively learning and collaborating
+
+### Character Design
+- **Style**: Illustrated/semi-realistic (not photographic, not cartoon)
+- **Age Range**: Middle school to high school students (12-17 years)
+- **Diversity**: 
+  - Multiple ethnicities (Asian, Caucasian, African, Hispanic, etc.)
+  - Gender diversity
+  - Various hairstyles and appearances
+  - Inclusive representation
+- **Expression**: Engaged, enthusiastic, focused, collaborative
+- **Clothing**: Casual contemporary school attire, varied colors
+- **Body Language**: Active, leaning in, gesturing, interacting
+
+### Group Dynamics
+- **Group Size**: 2-4 students typically
+- **Arrangement**: Gathered around table/desk, facing each other
+- **Interaction**: 
+  - Looking at shared materials
+  - Discussing and pointing
+  - Collaborative problem-solving
+  - Peer-to-peer engagement
+- **Roles**: Mix of explaining, listening, thinking, participating
+
+### Color Palette
+- **Primary**: Bright, energetic colors
+  - Vibrant blue (#3498DB, #5DADE2)
+  - Warm orange (#E67E22, #F39C12)
+  - Fresh green (#27AE60, #2ECC71)
+  - Cheerful yellow (#F1C40F, #F9E79F)
+- **Skin Tones**: Diverse, natural range
+- **Clothing**: Varied, colorful but not overwhelming
+- **Background**: Soft, muted tones (cream, light gray, soft blue)
+- **Accents**: Pops of bright color in learning materials
+
+### Learning Environment
+- **Setting**: Modern classroom, library, or collaborative space
+- **Furniture**: Contemporary desks, tables, chairs
+- **Materials**: 
+  - Notebooks, textbooks, worksheets
+  - Tablets, laptops (modern technology)
+  - Whiteboards, markers
+  - Mathematical tools (rulers, protractors, calculators)
+- **Background**: Simplified, not distracting
+  - Bookshelves (blurred)
+  - Windows with soft light
+  - Educational posters (subtle)
+  - Clean, organized space
+
+### Visual Elements
+- **Mathematical Content**: 
+  - Visible on papers, screens, or whiteboards
+  - Equations, diagrams, graphs
+  - Relevant to the learning context
+  - Clear but not overwhelming
+- **Technology Integration**: 
+  - Tablets or laptops present
+  - Modern learning tools
+  - Natural integration (not forced)
+- **Lighting**: Bright, natural, welcoming
+- **Depth**: Clear foreground (students) and soft background
+
+### Composition & Layout
+- **Format**: Landscape (1500x1060)
+- **Focus**: Students in foreground (60-70% of frame)
+- **Arrangement**: Clustered around shared workspace
+- **Eye Level**: Slightly above, showing interaction clearly
+- **Framing**: Medium shot, showing upper bodies and workspace
+- **Balance**: Dynamic but balanced composition
+
+### Mood & Atmosphere
+- **Energy**: Active, engaged, enthusiastic
+- **Emotion**: Positive, collaborative, supportive
+- **Learning**: Visible progress, "aha moments", discovery
+- **Social**: Peer support, teamwork, friendship
+- **Professionalism**: Educational quality, not chaotic
+
+---
+
+## PROMPT TEMPLATE FOR GENERATION
+
+Use this template when generating classroom activity images:
+
+```
+Create a vibrant, illustrated scene showing diverse students collaborating on [ACTIVITY: "{learning_activity}"] in a modern classroom setting.
+
+Aspect ratio 1500:1060 (landscape).
+
+Students (2-4 students):
+- Diverse group: varied ethnicities, genders, appearances
+- Age: [AGE: "middle school/high school"] (12-17 years)
+- Expressions: Engaged, enthusiastic, focused, collaborative
+- Clothing: Casual contemporary school attire, varied colors
+- Body language: Leaning in, gesturing, pointing, actively participating
+- Interaction: Discussing, sharing ideas, working together
+
+Setting & Environment:
+- Modern classroom or collaborative learning space
+- Contemporary desks/tables with students gathered around
+- Learning materials: notebooks, tablets/laptops, textbooks
+- Background: Soft, muted (bookshelves, windows, educational posters - blurred)
+- Clean, organized, welcoming space
+
+Learning Activity:
+- Students working on {learning_activity}
+- Visible materials related to the activity (worksheets, screens, whiteboard)
+- Mathematical content visible but not overwhelming
+- Tools: calculators, rulers, tablets, markers as appropriate
+- Clear focus on collaborative problem-solving
+
+Color Palette:
+- Vibrant, energetic colors: bright blue (#3498DB), warm orange (#E67E22), fresh green (#27AE60)
+- Diverse natural skin tones
+- Varied colorful clothing
+- Soft muted background (cream, light gray, soft blue)
+- Pops of bright color in learning materials
+
+Composition:
+- Students in foreground (60-70% of frame)
+- Clustered around shared workspace
+- Medium shot showing upper bodies and workspace
+- Eye level slightly above, showing interaction clearly
+- Dynamic but balanced layout
+
+Lighting & Atmosphere:
+- Bright, natural, welcoming lighting
+- Soft shadows
+- Warm, positive atmosphere
+- Energetic but focused mood
+- Professional educational quality
+
+Style Guidelines:
+- Illustrated/semi-realistic (not photographic, not cartoon)
+- Vibrant and engaging
+- Diverse and inclusive representation
+- Active learning visible
+- Collaborative and supportive atmosphere
+- Modern and contemporary
+
+CRITICAL REQUIREMENTS:
+- Must show 2-4 diverse students
+- Students must be actively collaborating (not passive)
+- Activity ({learning_activity}) must be clearly integrated
+- Atmosphere must be positive and engaging
+- Professional educational quality
+- Inclusive and representative
+```
+
+---
+
+## VARIABLE SUBSTITUTION
+
+When generating, replace these placeholders:
+- `{learning_activity}`: The specific activity (e.g., "solving geometry problems", "analyzing data sets", "working on algebra equations", "measuring angles", "graphing functions")
+- `{age}`: Student age range (e.g., "middle school", "high school", "Year 8", "Grade 10")
+
+---
+
+## EXAMPLES FROM REFERENCE IMAGES
+
+### Example 1: Group Problem Solving
+- 3-4 diverse students around table
+- Looking at shared worksheet/tablet
+- Pointing and discussing
+- Bright, energetic atmosphere
+- Modern classroom setting
+- Collaborative body language
+
+### Example 2: Peer Learning
+- Students helping each other
+- Mix of explaining and listening
+- Mathematical content visible on materials
+- Warm, supportive interaction
+- Contemporary learning environment
+- Active engagement visible
+
+---
+
+## ACTIVITY TYPE VARIATIONS
+
+Adjust these elements based on activity type:
+
+**Mathematical Problem Solving**:
+- Whiteboards with equations
+- Calculators and rulers visible
+- Diagrams and graphs on papers
+- Thoughtful, focused expressions
+
+**Data Analysis**:
+- Tablets/laptops with charts and graphs
+- Spreadsheets or data visualizations
+- Analytical discussion
+- Technology-forward setting
+
+**Hands-On Learning**:
+- Manipulatives or physical models
+- Measuring tools in use
+- Active experimentation
+- Kinesthetic engagement
+
+**Group Projects**:
+- Larger workspace with multiple materials
+- Division of tasks visible
+- Collaborative planning
+- Organized chaos of creativity
+
+---
+
+## QUALITY CHECKLIST
+
+Before finalizing, verify:
+- ✅ Aspect ratio is exactly 1500:1060
+- ✅ 2-4 diverse students clearly visible
+- ✅ Students are actively collaborating (not passive)
+- ✅ Expressions are engaged and positive
+- ✅ Learning activity is clearly integrated
+- ✅ Color palette is vibrant and energetic
+- ✅ Setting is modern and educational
+- ✅ Composition shows interaction clearly
+- ✅ Atmosphere is positive and collaborative
+- ✅ Diverse and inclusive representation
+- ✅ Professional educational quality maintained
