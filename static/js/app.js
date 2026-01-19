@@ -1,34 +1,21 @@
-// Frontend JavaScript for Image Generator
-console.log('Script loaded');
-
-// Initialize Socket.IO connection
-let socket;
-try {
-    if (typeof io !== 'undefined') {
-        socket = io();
-        console.log('Socket.IO initialized');
-    } else {
-        console.warn('Socket.IO library not found. Real-time updates will not work.');
-    }
-} catch (e) {
-    console.error('Failed to initialize Socket.IO:', e);
-}
+import { CONFIG } from './config.js';
+import { GeminiAPI } from './api.js';
+import { PromptBuilder } from './promptBuilder.js';
 
 // State management
 let state = {
     category: null,
-    orientation: 'landscape', // Default
+    orientation: 'landscape',
     count: 1,
-    models: ['google/gemini-2.5-flash-image-preview'],
+    models: ['google/gemini-2.5-flash-image'],
     generatedImages: [],
-    currentSessionId: null,
     editingIndex: null,
     history: [],
     currentHistoryId: null,
-    style: null,
-    referenceImages: [], // Base64 strings
+    style: 'original',
+    referenceImages: [],
     apiKeys: {
-        openrouter: ''
+        openrouter: localStorage.getItem('openrouter_key') || ''
     }
 };
 
@@ -43,29 +30,16 @@ const modelSection = document.getElementById('model-section');
 const modelGrid = document.getElementById('model-grid');
 const instructionSection = document.getElementById('instruction-section');
 const orientationSection = document.getElementById('orientation-section');
-const orientationGrid = document.querySelector('.orientation-grid') || document.querySelector('#orientation-section .orientation-grid');
+const orientationGrid = document.querySelector('.orientation-grid');
 const generateBtn = document.getElementById('generate-btn');
 const userInput = document.getElementById('prompt');
 const fileUpload = document.getElementById('file-upload');
 const attachmentsPreview = document.getElementById('attachments-preview');
-
-// API Key Elements
+const openrouterKeyInput = document.getElementById('openrouter-key');
 const apiKeysToggle = document.getElementById('api-keys-toggle');
 const apiKeysContent = document.getElementById('api-keys-content');
-const openrouterKeyInput = document.getElementById('openrouter-key');
 
-// Edit Modal Elements
-const editModal = document.getElementById('edit-modal');
-const refineInput = document.getElementById('refine-input');
-const confirmRefineBtn = document.getElementById('confirm-refine-btn');
-const closeModalBtns = document.querySelectorAll('.close-modal');
-
-// Preview Modal Elements
-const previewModal = document.getElementById('preview-modal');
-const previewImage = document.getElementById('preview-image');
-const closePreviewBtn = document.querySelector('.close-preview');
-
-// Progress & Results Elements
+// Progress & Results
 const progressSection = document.getElementById('progress-section');
 const progressBar = document.getElementById('progress-bar');
 const progressStatus = document.getElementById('progress-status');
@@ -73,18 +47,17 @@ const resultsSection = document.getElementById('results-section');
 const resultsGrid = document.getElementById('results-grid');
 const resultsSummary = document.getElementById('results-summary');
 
-// Legacy/Optional Elements (for backward compatibility)
-const followupSection = document.getElementById('follow-up-section');
-const refineBtn = document.getElementById('refine-btn');
-const selectedImageSelect = document.getElementById('selected-image');
-const followupInstructions = document.getElementById('followup-instructions');
+// Modals
+const editModal = document.getElementById('edit-modal');
+const previewModal = document.getElementById('preview-modal');
+const previewImage = document.getElementById('preview-image');
+const refineInput = document.getElementById('refine-input');
+const confirmRefineBtn = document.getElementById('confirm-refine-btn');
 
-// ... (existing code) ...
+const api = new GeminiAPI(state.apiKeys.openrouter);
+const promptBuilder = new PromptBuilder();
 
 function init() {
-    console.log('Initializing app...');
-    if (!categoryGrid) console.error('categoryGrid is missing');
-
     setupCategorySelection();
     setupOrientationSelection();
     setupFileUpload();
@@ -93,55 +66,460 @@ function init() {
     setupModelSelection();
     setupGenerateButton();
     setupEditModal();
-    setupPreviewModal();
-    setupSocketListeners();
     setupApiKeys();
+    setupPreviewModal();
+    setupClearHistory();
     loadHistory();
-    console.log('App initialized');
+
+    if (state.apiKeys.openrouter) {
+        openrouterKeyInput.value = state.apiKeys.openrouter;
+    }
 }
 
-// ... (existing code) ...
+function setupApiKeys() {
+    apiKeysToggle.addEventListener('click', () => {
+        apiKeysContent.classList.toggle('hidden');
+    });
 
-// --- Edit Modal Logic ---
+    const updateApiKey = (e) => {
+        const key = e.target.value.trim();
+        state.apiKeys.openrouter = key;
+        localStorage.setItem('openrouter_key', key);
+        api.apiKey = key;
+        console.log('API key updated:', key ? 'Key set' : 'Key empty');
+    };
 
-function setupEditModal() {
-    // Close modal handlers
-    closeModalBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            editModal.classList.add('hidden');
+    openrouterKeyInput.addEventListener('change', updateApiKey);
+    openrouterKeyInput.addEventListener('blur', updateApiKey);
+    openrouterKeyInput.addEventListener('input', (e) => {
+        // Update state immediately on input but don't save to localStorage yet
+        state.apiKeys.openrouter = e.target.value.trim();
+        api.apiKey = e.target.value.trim();
+    });
+}
+
+function setupClearHistory() {
+    const clearBtn = document.getElementById('clear-history-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all history? This cannot be undone.')) {
+                state.history = [];
+                state.currentHistoryId = null;
+                localStorage.removeItem('imageGenHistory');
+                renderHistory();
+                console.log('History cleared');
+            }
+        });
+    }
+}
+
+function setupCategorySelection() {
+    const tiles = categoryGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+            state.category = tile.dataset.value;
+            showNextSections();
         });
     });
-
-    // Close on outside click
-    editModal.addEventListener('click', (e) => {
-        if (e.target === editModal) {
-            editModal.classList.add('hidden');
-        }
-    });
-
-    // Confirm refine handler
-    confirmRefineBtn.addEventListener('click', handleRefine);
 }
 
-function openEditModal(index) {
-    state.editingIndex = index;
-    refineInput.value = ''; // Clear previous input
-    editModal.classList.remove('hidden');
-    refineInput.focus();
+function setupOrientationSelection() {
+    const tiles = orientationGrid.querySelectorAll('.orientation-tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+            state.orientation = tile.dataset.value;
+        });
+    });
+}
+
+function setupStyleSelection() {
+    const tiles = styleGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+            state.style = tile.dataset.value;
+        });
+    });
+}
+
+function setupCountSelection() {
+    const tiles = countGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+            state.count = parseInt(tile.dataset.value);
+        });
+    });
+}
+
+function setupModelSelection() {
+    const tiles = modelGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+            state.models = [tile.dataset.value];
+        });
+    });
+}
+
+function showNextSections() {
+    const subtopicStyles = document.querySelectorAll('.subtopic-style');
+    const contextStyles = document.querySelectorAll('.context-style');
+
+    if (state.category === 'subtopic_cover') {
+        styleSection.style.display = 'block';
+        styleSection.classList.remove('hidden');
+
+        subtopicStyles.forEach(el => el.style.display = 'flex');
+        contextStyles.forEach(el => el.style.display = 'none');
+
+        // Reset to original if switching back or if current style is invalid for subtopic
+        if (state.style === 'realistic' || state.style === 'cartoon' || !state.style) {
+            state.style = 'original';
+            updateStyleSelectionUI();
+        }
+
+    } else if (state.category === 'context_introduction') {
+        styleSection.style.display = 'block';
+        styleSection.classList.remove('hidden');
+
+        subtopicStyles.forEach(el => el.style.display = 'none');
+        contextStyles.forEach(el => el.style.display = 'flex');
+
+        // Default to realistic if switching to context or if current style is invalid
+        if (state.style !== 'realistic' && state.style !== 'cartoon') {
+            state.style = 'realistic';
+            updateStyleSelectionUI();
+        }
+
+    } else {
+        styleSection.style.display = 'none';
+        // Reset style just in case
+        state.style = 'original';
+    }
+
+    orientationSection.classList.remove('hidden');
+    countSection.classList.remove('hidden');
+    modelSection.classList.remove('hidden');
+    instructionSection.classList.remove('hidden');
+    generateBtn.classList.remove('hidden');
+}
+
+function updateStyleSelectionUI() {
+    const tiles = styleGrid.querySelectorAll('.tile');
+    tiles.forEach(tile => {
+        if (tile.dataset.value === state.style) {
+            tile.classList.add('selected');
+        } else {
+            tile.classList.remove('selected');
+        }
+    });
+}
+
+function setupFileUpload() {
+    fileUpload.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                state.referenceImages.push(event.target.result);
+                renderAttachmentPreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+}
+
+function renderAttachmentPreviews() {
+    attachmentsPreview.innerHTML = '';
+    state.referenceImages.forEach((img, index) => {
+        const item = document.createElement('div');
+        item.className = 'attachment-preview-item';
+        item.innerHTML = `
+            <img src="${img}">
+            <div class="attachment-remove" data-index="${index}">×</div>
+        `;
+        item.querySelector('.attachment-remove').onclick = () => {
+            state.referenceImages.splice(index, 1);
+            renderAttachmentPreviews();
+        };
+        attachmentsPreview.appendChild(item);
+    });
+}
+
+async function handleGenerate() {
+    const promptText = userInput.value.trim();
+    if (!state.category || !promptText || !state.apiKeys.openrouter) {
+        alert("Please fill in all required fields and API key.");
+        return;
+    }
+
+    // Capture state at the start of generation to prevent issues if user switches tabs
+    const genState = {
+        promptText,
+        category: state.category,
+        count: state.count,
+        orientation: state.orientation,
+        style: state.style,
+        models: [...state.models],
+        referenceImages: [...state.referenceImages],
+        apiKeys: { ...state.apiKeys }
+    };
+
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
+    resultsSection.style.display = 'block';
+    resultsGrid.innerHTML = '';
+    state.generatedImages = [];
+
+    const historyId = addToHistory(genState.promptText, genState.category, genState.count);
+    state.currentHistoryId = historyId;
+
+    // Create placeholders
+    for (let i = 0; i < genState.count; i++) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'result-item placeholder';
+        placeholder.id = `result-item-${i + 1}`;
+        placeholder.innerHTML = `<div class="placeholder-content"><div class="spinner"></div><p>Generating...</p></div>`;
+        resultsGrid.appendChild(placeholder);
+    }
+
+    try {
+        const systemReferences = await api.fetchReferenceImages(genState.category);
+
+        // Get dimensions based on orientation
+        const categoryConfig = CONFIG.categories[genState.category];
+        let width = categoryConfig.width;
+        let height = categoryConfig.height;
+
+        // Determine if we need to swap based on selected orientation
+        const isCurrentlyLandscape = width > height;
+        const wantsLandscape = genState.orientation === 'landscape';
+
+        // Swap if the current orientation doesn't match the desired orientation
+        if (isCurrentlyLandscape && !wantsLandscape) {
+            // Default is landscape, user wants portrait
+            [width, height] = [height, width];
+        } else if (!isCurrentlyLandscape && wantsLandscape) {
+            // Default is portrait, user wants landscape
+            [width, height] = [height, width];
+        }
+
+        console.log(`Generating ${genState.count} images at ${width}x${height} (${genState.orientation})`);
+
+
+        for (let i = 0; i < genState.count; i++) {
+            const finalPrompt = promptBuilder.buildPrompt(genState.category, genState.promptText, {
+                style: genState.style,
+                variationIndex: i,
+                totalVariations: genState.count,
+                width: width,
+                height: height,
+                hasUserReferenceImages: genState.referenceImages.length > 0
+            });
+
+            const imageUrl = await api.generateImage({
+                prompt: finalPrompt,
+                category: genState.category,
+                model: genState.models[0],
+                width: width,
+                height: height,
+                userReferenceImages: genState.referenceImages,
+                systemReferenceImages: systemReferences
+            });
+
+            updateResultItem(i + 1, imageUrl, historyId);
+        }
+
+        resultsSummary.textContent = `Generated ${genState.count} images.`;
+    } catch (error) {
+        console.error(error);
+        alert("Error generating images: " + error.message);
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<span class="btn-text">Generate Images</span><span class="btn-icon">✨</span>';
+    }
+}
+
+function renderResultItem(index, imageUrl) {
+    const item = document.getElementById(`result-item-${index}`);
+    if (!item) return;
+
+    item.className = 'result-item fade-in';
+    item.innerHTML = `
+        <img src="${imageUrl}" onclick="window.openPreviewModal('${imageUrl}')">
+        <button class="edit-btn" onclick="window.openEditModal(${index})">✏️</button>
+        <div class="result-item-overlay">
+            <button class="download-btn" onclick="window.downloadImage('${imageUrl}', ${index})">Download</button>
+        </div>
+    `;
+}
+
+function updateResultItem(index, imageUrl, historyId) {
+    // 1. Update History State (Source of Truth) using the specific historyId
+    const item = state.history.find(h => h.id == historyId); // Loose equality for safety
+    if (item) {
+        // Avoid duplicates in history
+        const exists = item.images.some(img => img.index === index && img.url === imageUrl);
+        if (!exists) {
+            item.images.push({ index, url: imageUrl });
+            saveHistory();
+            renderHistory();
+        }
+    } else {
+        console.warn(`History item with id ${historyId} not found in state.`);
+    }
+
+    // 2. Update UI only if we are currently viewing this history item
+    if (state.currentHistoryId == historyId) { // Loose equality
+        // Update current view state
+        const alreadyInGen = state.generatedImages.some(img => img.index === index);
+        if (!alreadyInGen) {
+            state.generatedImages.push({ index, url: imageUrl });
+        }
+        // Update DOM
+        renderResultItem(index, imageUrl);
+    }
+}
+
+function setupGenerateButton() {
+    generateBtn.addEventListener('click', handleGenerate);
+}
+
+// History Management
+function addToHistory(prompt, category, count) {
+    const item = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        prompt,
+        category,
+        count,
+        images: []
+    };
+    state.history.unshift(item);
+    saveHistory();
+    renderHistory();
+    return item.id;
+}
+
+function saveHistory() {
+    try {
+        // Only save the last 20 items to avoid quota issues
+        const historyToSave = state.history.slice(0, 20);
+        localStorage.setItem('imageGenHistory', JSON.stringify(historyToSave));
+    } catch (e) {
+        console.warn('Failed to save history (quota exceeded):', e);
+        // Clear old history and try again with just the last 5 items
+        try {
+            const recentHistory = state.history.slice(0, 5);
+            localStorage.setItem('imageGenHistory', JSON.stringify(recentHistory));
+        } catch (e2) {
+            console.error('Could not save history even after clearing:', e2);
+        }
+    }
+}
+
+function loadHistory() {
+    const saved = localStorage.getItem('imageGenHistory');
+    if (saved) {
+        state.history = JSON.parse(saved);
+        renderHistory();
+    }
+}
+
+function renderHistory() {
+    historyList.innerHTML = '';
+    if (state.history.length === 0) {
+        historyList.innerHTML = '<div class="empty-history">No history yet</div>';
+        return;
+    }
+
+    state.history.forEach(item => {
+        const el = document.createElement('div');
+        el.className = `history-item ${state.currentHistoryId === item.id ? 'active' : ''}`;
+
+        // Format timestamp
+        const date = new Date(item.timestamp);
+        const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        el.innerHTML = `
+            <div class="history-prompt">${item.prompt}</div>
+            <div class="history-meta">
+                <span class="history-category">${CONFIG.categories[item.category]?.name || item.category}</span>
+                <span class="history-time">${timeStr} • ${dateStr}</span>
+            </div>
+        `;
+        el.onclick = () => loadHistoryItem(item);
+        historyList.appendChild(el);
+    });
+}
+
+function loadHistoryItem(itemInput) {
+    // Refresh item from state to ensure we have latest images and object reference
+    const item = state.history.find(h => h.id == itemInput.id) || itemInput;
+
+    state.currentHistoryId = item.id;
+    state.category = item.category;
+    userInput.value = item.prompt;
+    state.count = item.count;
+    state.generatedImages = [...item.images];
+
+    resultsSection.style.display = 'block';
+    resultsGrid.innerHTML = '';
+
+    // Render placeholders + images
+    // We use state.count to determine how many slots there should be.
+    // We use item.images to fill the completed ones.
+    for (let i = 0; i < state.count; i++) {
+        const div = document.createElement('div');
+        div.id = `result-item-${i + 1}`;
+        resultsGrid.appendChild(div);
+
+        const existingImg = item.images.find(img => img.index === (i + 1));
+        if (existingImg) {
+            renderResultItem(existingImg.index, existingImg.url);
+        } else {
+            // Render placeholder
+            div.className = 'result-item placeholder';
+            div.innerHTML = `<div class="placeholder-content"><div class="spinner"></div><p>Generating...</p></div>`;
+        }
+    }
+
+    renderHistory();
+}
+
+// Modals
+function setupEditModal() {
+    const closeBtns = editModal.querySelectorAll('.close-modal, .close-modal-btn');
+    closeBtns.forEach(btn => btn.onclick = () => editModal.classList.add('hidden'));
+    confirmRefineBtn.onclick = handleRefine;
+}
+
+function setupPreviewModal() {
+    previewModal.onclick = (e) => {
+        if (e.target === previewModal || e.target.className === 'close-preview') {
+            previewModal.classList.add('hidden');
+        }
+    };
 }
 
 async function handleRefine() {
     const instructions = refineInput.value.trim();
-
     if (!instructions) {
         alert('Please describe your changes.');
         return;
     }
 
-    const originalIndex = state.editingIndex;
-    const image = state.generatedImages.find(img => img.index === originalIndex);
-
-    if (!image) {
+    const baseImage = state.generatedImages.find(img => img.index === state.editingIndex);
+    if (!baseImage) {
         alert('Error: Image not found.');
         return;
     }
@@ -149,7 +527,7 @@ async function handleRefine() {
     // Close modal
     editModal.classList.add('hidden');
 
-    // Generate new index for the refined image (next available index)
+    // Generate new index for the refined image
     const maxIndex = Math.max(...state.generatedImages.map(img => img.index), 0);
     const newIndex = maxIndex + 1;
 
@@ -160,7 +538,7 @@ async function handleRefine() {
     placeholder.innerHTML = `
         <div class="placeholder-content">
             <div class="spinner"></div>
-            <p id="refine-status-${newIndex}">Starting refinement...</p>
+            <p>Refining image...</p>
         </div>
     `;
 
@@ -168,836 +546,71 @@ async function handleRefine() {
     resultsGrid.appendChild(placeholder);
 
     try {
-        // We no longer need to upload to ImgBB since the backend can access local files.
-        // We just send the absolute filepath that the backend previously provided.
+        // Build refinement prompt
+        const refinementPrompt = `CRITICAL INSTRUCTION: The first image is the base image to refine.
 
-        // Update status
-        const statusEl = document.getElementById(`refine-status-${newIndex}`);
-        if (statusEl) statusEl.textContent = 'Refining...';
+Modify this image according to these instructions: "${instructions}"
 
-        // Send refinement request with the local filepath
-        const response = await fetch('/api/refine', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                category: state.category,
-                base_image_path: image.filepath, // Send local path directly
-                refinement_instructions: instructions,
-                index: newIndex,
-                api_key: state.apiKeys.openrouter
-            })
+IMPORTANT RULES:
+- Maintain the overall style and composition of the original image
+- Only make the specific changes requested in the instructions
+- Keep the same aspect ratio and dimensions
+- Preserve the quality and clarity of the original`;
+
+        // Get dimensions from the base image (use same as original)
+        const categoryConfig = CONFIG.categories[state.category];
+        let width = categoryConfig.width;
+        let height = categoryConfig.height;
+
+        // Apply orientation
+        const isCurrentlyLandscape = width > height;
+        const wantsLandscape = state.orientation === 'landscape';
+
+        if (isCurrentlyLandscape && !wantsLandscape) {
+            [width, height] = [height, width];
+        } else if (!isCurrentlyLandscape && wantsLandscape) {
+            [width, height] = [height, width];
+        }
+
+        // Call API with base image as reference
+        const imageUrl = await api.generateImage({
+            prompt: refinementPrompt,
+            category: state.category,
+            model: state.models[0],
+            width: width,
+            height: height,
+            userReferenceImages: [baseImage.url],
+            systemReferenceImages: []
         });
 
-        const data = await response.json();
+        // Update the placeholder with the refined image
+        updateResultItem(newIndex, imageUrl, state.currentHistoryId);
 
-        if (data.success) {
-            state.currentSessionId = data.session_id;
-            console.log('Refinement started:', data.session_id);
-        } else {
-            showError(data.error);
-            placeholder.remove();
-        }
     } catch (error) {
         console.error('Refinement error:', error);
-        showError(error.message);
+        alert('Error refining image: ' + error.message);
         placeholder.remove();
     }
 }
 
-// --- Preview Modal Logic ---
+window.openEditModal = (index) => {
+    state.editingIndex = index;
+    refineInput.value = '';
+    editModal.classList.remove('hidden');
+};
 
-function setupPreviewModal() {
-    if (!previewModal || !closePreviewBtn) return;
-
-    // Close on button click
-    closePreviewBtn.addEventListener('click', () => {
-        previewModal.classList.add('hidden');
-    });
-
-    // Close on outside click
-    previewModal.addEventListener('click', (e) => {
-        if (e.target === previewModal || e.target.classList.contains('preview-content')) {
-            previewModal.classList.add('hidden');
-        }
-    });
-
-    // Close on Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !previewModal.classList.contains('hidden')) {
-            previewModal.classList.add('hidden');
-        }
-    });
-}
-
-function openPreviewModal(imageUrl) {
-    if (!previewModal || !previewImage) return;
-    previewImage.src = imageUrl;
+window.openPreviewModal = (url) => {
+    previewImage.src = url;
     previewModal.classList.remove('hidden');
-}
-
-// ... (existing code) ...
-
-function updatePlaceholderWithImage(index, image) {
-    const placeholder = document.getElementById(`result-item-${index}`);
-    if (placeholder && image.success) {
-        placeholder.className = 'result-item fade-in';
-        placeholder.innerHTML = `
-            <img src="/output/${image.filename}" alt="Generated Image ${index}"
-                 onclick="openPreviewModal('/output/${image.filename}')"
-                 style="cursor: pointer;">
-            <button class="edit-btn" onclick="openEditModal(${index})" title="Refine Image">
-                ✏️
-            </button>
-            <div class="result-item-overlay">
-                <span class="result-item-index">Image ${index}</span>
-                <button class="download-btn" onclick="downloadImage('${image.filename}', ${index})">
-                    Download
-                </button>
-            </div>
-        `;
-
-        // Update state (replace existing or add new)
-        const existingIndex = state.generatedImages.findIndex(img => img.index === index);
-        const imageData = {
-            index: index,
-            filename: image.filename,
-            filepath: image.filepath,
-            category: state.category
-        };
-
-        if (existingIndex >= 0) {
-            state.generatedImages[existingIndex] = imageData;
-        } else {
-            state.generatedImages.push(imageData);
-        }
-
-        // Update history
-        if (state.currentHistoryId) {
-            updateHistoryImages(state.currentHistoryId, imageData);
-        }
-    } else if (placeholder) {
-        // ... error handling ...
-        placeholder.className = 'result-item error';
-        placeholder.innerHTML = `
-            <div class="error-content">
-                <p>Failed to generate image ${index}</p>
-                <p class="error-detail">${image.error || 'Unknown error'}</p>
-            </div>
-            `;
-    }
-}
-
-// Global function for edit button
-// Global function for edit button
-window.openEditModal = openEditModal;
-window.openPreviewModal = openPreviewModal;
-
-// --- Selection Logic ---
-
-// --- Selection Logic ---
-
-function setupCategorySelection() {
-    if (!categoryGrid) {
-        console.error('Error: categoryGrid not found');
-        return;
-    }
-
-    const tiles = categoryGrid.querySelectorAll('.tile');
-    console.log(`Found ${tiles.length} category tiles`);
-
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            console.log('Category clicked:', tile.dataset.value);
-
-            // Remove selected class from all category tiles
-            tiles.forEach(t => t.classList.remove('selected'));
-
-            // Select clicked tile
-            tile.classList.add('selected');
-            state.category = tile.dataset.value;
-            console.log('Category set to:', state.category);
-
-            // Show next sections
-            showNextSections();
-        });
-    });
-}
-
-function setupOrientationSelection() {
-    if (!orientationGrid) return;
-    const tiles = orientationGrid.querySelectorAll('.orientation-tile');
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            tiles.forEach(t => t.classList.remove('selected'));
-            tile.classList.add('selected');
-            state.orientation = tile.dataset.value;
-            console.log('Orientation set to:', state.orientation);
-        });
-    });
-}
-
-function setupFileUpload() {
-    if (!fileUpload) return;
-    fileUpload.addEventListener('change', handleFileSelect);
-}
-
-function handleFileSelect(e) {
-    const files = Array.from(e.target.files);
-    files.forEach(file => {
-        if (!file.type.startsWith('image/')) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const base64 = event.target.result;
-            state.referenceImages.push(base64);
-            renderAttachmentPreviews();
-        };
-        reader.readAsDataURL(file);
-    });
-    // Reset input so the same file can be selected again if removed
-    e.target.value = '';
-}
-
-function renderAttachmentPreviews() {
-    if (!attachmentsPreview) return;
-    attachmentsPreview.innerHTML = '';
-    state.referenceImages.forEach((img, index) => {
-        const item = document.createElement('div');
-        item.className = 'attachment-preview-item';
-        item.innerHTML = `
-            <img src="${img}" alt="Reference">
-            <div class="attachment-remove" onclick="removeAttachment(${index})">×</div>
-        `;
-        attachmentsPreview.appendChild(item);
-    });
-}
-
-window.removeAttachment = function (index) {
-    state.referenceImages.splice(index, 1);
-    renderAttachmentPreviews();
 };
 
-function setupCountSelection() {
-    if (!countGrid) return;
-    const tiles = countGrid.querySelectorAll('.tile');
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            tiles.forEach(t => t.classList.remove('selected'));
-            tile.classList.add('selected');
-            state.count = parseInt(tile.dataset.value);
-            console.log('Count set to:', state.count);
-        });
-    });
-}
-
-function setupModelSelection() {
-    if (!modelGrid) return;
-    const tiles = modelGrid.querySelectorAll('.tile');
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            const model = tile.dataset.value;
-
-            if (tile.classList.contains('selected')) {
-                // Don't allow deselecting if it's the only one selected
-                if (state.models.length > 1) {
-                    tile.classList.remove('selected');
-                    state.models = state.models.filter(m => m !== model);
-                }
-            } else {
-                tile.classList.add('selected');
-                state.models.push(model);
-            }
-            console.log('Models set to:', state.models);
-        });
-    });
-}
-
-function showNextSections() {
-    console.log('showNextSections called');
-    if (!orientationSection) return;
-
-    if (orientationSection.classList.contains('hidden')) {
-        console.log('Revealing sections...');
-        orientationSection.classList.remove('hidden');
-        setTimeout(() => {
-            if (countSection) countSection.classList.remove('hidden');
-            setTimeout(() => {
-                if (modelSection) modelSection.classList.remove('hidden');
-                setTimeout(() => {
-                    if (instructionSection) instructionSection.classList.remove('hidden');
-                    if (generateBtn) {
-                        generateBtn.classList.remove('hidden');
-                        generateBtn.disabled = false;
-                    }
-                }, 100);
-            }, 100);
-        }, 100);
-    }
-}
-
-// --- Generation Logic ---
-
-function setupGenerateButton() {
-    generateBtn.addEventListener('click', () => {
-        const prompt = userInput.value.trim();
-
-        if (!state.category) {
-            showError('Please select an image type.');
-            return;
-        }
-
-        if (!state.apiKeys.openrouter) {
-            showError('No API key found. Enter a valid API Key');
-            return;
-        }
-
-        if (!prompt) {
-            showError('Please describe your image.');
-            return;
-        }
-
-        // Disable button and show loader
-        generateBtn.disabled = true;
-        generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
-
-        // Hide progress section (we'll show progress on tiles instead)
-        progressSection.style.display = 'none';
-
-        // Hide follow-up section (legacy)
-        if (followupSection) followupSection.style.display = 'none';
-
-        // Show results section immediately with placeholders
-        resultsSection.style.display = 'block';
-        resultsGrid.innerHTML = '';
-        state.generatedImages = [];
-
-        // Add to history immediately (without session ID yet)
-        const historyId = addToHistory(prompt, state.category, state.count, state.models, null);
-        state.currentHistoryId = historyId;
-
-        // Create placeholders
-        for (let i = 0; i < state.count; i++) {
-            const placeholder = document.createElement('div');
-            placeholder.className = 'result-item placeholder';
-            placeholder.id = `result-item-${i + 1}`;
-            placeholder.innerHTML = `
-                <div class="placeholder-content">
-                    <div class="spinner"></div>
-                    <p class="placeholder-status">Waiting...</p>
-                </div>
-            `;
-            resultsGrid.appendChild(placeholder);
-        }
-
-        // Send request via REST API
-        fetch('/api/generate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                category: state.category,
-                user_input: prompt,
-                count: state.count,
-                selected_models: state.models,
-                style: state.style,
-                orientation: state.orientation,
-                reference_images: state.referenceImages,
-                api_key: state.apiKeys.openrouter
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update history item with session ID
-                    const historyItem = state.history.find(h => h.id === historyId);
-                    if (historyItem) {
-                        historyItem.sessionId = data.session_id;
-                        saveHistory();
-                    }
-                    console.log('Generation started:', data.session_id);
-                } else {
-                    showError(data.error);
-                    resetUI();
-                }
-            })
-            .catch(error => {
-                showError(error.message);
-                resetUI();
-            });
-    });
-}
-
-// --- Refinement Logic ---
-
-function setupRefineButton() {
-    if (!refineBtn) return;
-
-    refineBtn.addEventListener('click', async () => {
-        const selectedImageIndex = parseInt(selectedImageSelect.value);
-        const instructions = followupInstructions.value.trim();
-
-        if (!selectedImageIndex) {
-            alert('Please select an image to refine');
-            return;
-        }
-
-        if (!instructions) {
-            alert('Please enter refinement instructions');
-            return;
-        }
-
-        const selectedImage = state.generatedImages.find(img => img.index === selectedImageIndex);
-        if (!selectedImage) return;
-
-        // Disable button and show loading
-        refineBtn.disabled = true;
-        const originalText = refineBtn.innerHTML;
-        refineBtn.innerHTML = '<span class="spinner"></span> Refining...';
-
-        // Show progress
-        progressSection.style.display = 'block';
-        progressBar.style.width = '0%';
-        progressStatus.textContent = 'Refining image...';
-
-        try {
-            const response = await fetch('/api/refine', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    category: state.category, // Use current category
-                    base_image_path: selectedImage.filepath,
-                    refinement_instructions: instructions,
-                    api_key: state.apiKeys.openrouter
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                state.currentSessionId = data.session_id;
-                console.log('Refinement started:', data.session_id);
-            } else {
-                showError(data.error);
-                refineBtn.disabled = false;
-                refineBtn.innerHTML = originalText;
-            }
-        } catch (error) {
-            showError('Failed to start refinement: ' + error.message);
-            refineBtn.disabled = false;
-            refineBtn.innerHTML = originalText;
-        }
-    });
-}
-
-// --- Socket.IO Handlers ---
-
-function setupSocketListeners() {
-    if (!socket) {
-        console.warn('Socket.IO not initialized, skipping listeners');
-        return;
-    }
-
-    socket.on('connected', (data) => {
-        console.log('Connected to server:', data.message);
-    });
-
-    socket.on('generation_progress', (data) => {
-        // Find history item for this session
-        const historyItem = state.history.find(h => h.sessionId === data.session_id);
-
-        // Only update UI if we are currently viewing this history item
-        if (historyItem && state.currentHistoryId === historyItem.id) {
-            // Update placeholder status text instead of progress bar
-            const status = data.status;
-
-            // Parse status to determine which image is being generated
-            // Status format: "Generating images..." or similar
-            // We'll update all placeholders that haven't been replaced yet
-            const placeholders = document.querySelectorAll('.result-item.placeholder .placeholder-status');
-            placeholders.forEach((statusEl, index) => {
-                if (index === data.current - 2) { // Adjust for offset
-                    statusEl.textContent = 'Generating...';
-                }
-            });
-        }
-    });
-
-    socket.on('image_generated', (data) => {
-        console.log('Image generated:', data);
-
-        // Find history item for this session
-        const historyItem = state.history.find(h => h.sessionId === data.session_id);
-
-        if (historyItem) {
-            // Update history data
-            updateHistoryImages(historyItem.id, data.image);
-
-            // Only update UI if we are currently viewing this history item
-            if (state.currentHistoryId === historyItem.id) {
-                updatePlaceholderWithImage(data.index, data.image);
-            }
-        }
-    });
-
-    socket.on('generation_complete', (data) => {
-        console.log('Generation complete:', data.result);
-
-        // Find history item for this session
-        const historyItem = state.history.find(h => h.sessionId === data.result.session_id);
-
-        if (historyItem) {
-            historyItem.status = 'complete';
-            saveHistory();
-
-            // Only update UI if we are currently viewing this history item
-            if (state.currentHistoryId === historyItem.id) {
-                updateGenerationSummary(data.result);
-                resetUI();
-            }
-        }
-    });
-
-    socket.on('generation_error', (data) => {
-        // Find history item for this session
-        // Note: data.session_id might be needed here, assuming error data includes it
-        const historyItem = state.history.find(h => h.sessionId === data.session_id);
-
-        if (historyItem) {
-            historyItem.status = 'error';
-            saveHistory();
-
-            if (state.currentHistoryId === historyItem.id) {
-                showError(data.error);
-                resetUI();
-            }
-        } else if (data.session_id === state.currentSessionId) {
-            // Fallback
-            showError(data.error);
-            resetUI();
-        }
-    });
-}
-
-// --- Helper Functions ---
-
-function updateGenerationSummary(result) {
-    // Hide progress
-    progressSection.style.display = 'none';
-
-    // Display summary
-    if (resultsSummary) {
-        resultsSummary.textContent = `Successfully generated ${result.total_generated} out of ${result.total_requested} images`;
-    }
-
-    // Populate follow-up image selector (legacy)
-    if (selectedImageSelect) {
-        selectedImageSelect.innerHTML = '<option value="">Select an image to refine...</option>';
-        state.generatedImages.sort((a, b) => a.index - b.index).forEach(img => {
-            const option = document.createElement('option');
-            option.value = img.index;
-            option.textContent = `Image ${img.index} `;
-            selectedImageSelect.appendChild(option);
-        });
-    }
-
-    // Show follow-up section (legacy)
-    if (followupSection) followupSection.style.display = 'block';
-}
-
-function displayResults(result) {
-    // Legacy function, kept for compatibility but logic moved to updateGenerationSummary
-    updateGenerationSummary(result);
-}
-
-function resetUI() {
-    generateBtn.disabled = false;
-    generateBtn.innerHTML = '<span class="btn-text">Generate Images</span><span class="btn-icon">✨</span>';
-
-    if (refineBtn) {
-        refineBtn.disabled = false;
-        refineBtn.innerHTML = '<span class="btn-text">Refine Image</span><span class="btn-loader" style="display: none;"><span class="spinner"></span></span>';
-    }
-}
-
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-
-    const container = document.querySelector('.generator-card');
-    container.insertBefore(errorDiv, container.firstChild);
-
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 5000);
-}
-
-// Global function for download button (needs to be accessible from HTML onclick)
-window.downloadImage = function (filename, index) {
-    const link = document.createElement('a');
-    link.href = `/output/${filename}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+window.downloadImage = (url, index) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `generated-image-${index}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 };
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
-
-// --- History Management ---
-
-function saveHistory() {
-    try {
-        localStorage.setItem('imageGenHistory', JSON.stringify(state.history));
-    } catch (e) {
-        console.error('Failed to save history:', e);
-    }
-}
-
-function loadHistory() {
-    const saved = localStorage.getItem('imageGenHistory');
-    if (saved) {
-        try {
-            state.history = JSON.parse(saved);
-            // Convert timestamp strings back to Date objects
-            state.history.forEach(item => {
-                item.timestamp = new Date(item.timestamp);
-                // Reset stuck generation status on reload
-                if (item.status === 'generating') {
-                    item.status = 'interrupted';
-                }
-            });
-            renderHistory();
-        } catch (e) {
-            console.error('Failed to load history:', e);
-        }
-    }
-}
-
-function addToHistory(prompt, category, count, models, sessionId) {
-    const historyItem = {
-        id: Date.now(),
-        sessionId: sessionId, // Store session ID to link with socket events
-        status: 'generating', // Track generation status
-        timestamp: new Date(),
-        prompt: prompt,
-        category: category,
-        count: count,
-        models: models,
-        images: [] // Will be populated as images are generated
-    };
-    state.history.unshift(historyItem);
-    saveHistory();
-    renderHistory();
-    return historyItem.id;
-}
-
-// --- API Key Management ---
-
-function setupApiKeys() {
-    // Load from localStorage
-    const savedKeys = localStorage.getItem('imageGenApiKeys');
-    if (savedKeys) {
-        try {
-            state.apiKeys = JSON.parse(savedKeys);
-            openrouterKeyInput.value = state.apiKeys.openrouter || '';
-        } catch (e) {
-            console.error('Failed to parse saved API keys:', e);
-        }
-    }
-
-    // Toggle accordion
-    apiKeysToggle.addEventListener('click', () => {
-        apiKeysToggle.classList.toggle('active');
-        apiKeysContent.classList.toggle('hidden');
-    });
-
-    // Handle input changes
-    openrouterKeyInput.addEventListener('input', (e) => {
-        state.apiKeys.openrouter = e.target.value.trim();
-        saveApiKeys();
-    });
-}
-
-function saveApiKeys() {
-    localStorage.setItem('imageGenApiKeys', JSON.stringify(state.apiKeys));
-}
-
-function updateHistoryImages(historyId, image) {
-    const item = state.history.find(h => h.id === historyId);
-    if (item) {
-        // Check if image with this index already exists
-        const existingImgIndex = item.images.findIndex(img => img.index === image.index);
-        if (existingImgIndex >= 0) {
-            item.images[existingImgIndex] = image; // Update existing
-        } else {
-            item.images.push(image); // Add new
-        }
-        saveHistory();
-        renderHistory(); // Re-render to show thumbnail
-    }
-}
-
-function renderHistory() {
-    if (!historyList) return;
-
-    historyList.innerHTML = '';
-
-    if (state.history.length === 0) {
-        historyList.innerHTML = '<div class="empty-history">No history yet</div>';
-        return;
-    }
-
-    state.history.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        if (item.id === state.currentHistoryId) {
-            div.classList.add('active');
-        }
-        div.onclick = () => loadHistoryItem(item.id);
-
-        // Category Emojis
-        const categoryEmojis = {
-            'subtopic_cover': '📚',
-            'tutero_ai': '🤖',
-            'classroom_activity': '🏫',
-            'context_introduction': '🌍'
-        };
-        const emoji = categoryEmojis[item.category] || '🖼️';
-
-        // Preview images (first 3)
-        let imagesHtml = '';
-        if (item.images && item.images.length > 0) {
-            imagesHtml = '<div class="history-images-preview">';
-            item.images.slice(0, 3).forEach(img => {
-                if (img.filename) {
-                    imagesHtml += `<img src="/output/${img.filename}" class="history-thumb">`;
-                }
-            });
-            imagesHtml += '</div>';
-        }
-
-        div.innerHTML = `
-            <div class="history-header">
-                <span class="history-icon">${emoji}</span>
-                <div class="history-prompt">${item.prompt}</div>
-            </div>
-            ${imagesHtml}
-        `;
-
-        historyList.appendChild(div);
-    });
-}
-
-function loadHistoryItem(id) {
-    const item = state.history.find(h => h.id === id);
-    if (!item) return;
-
-    // Restore State
-    state.category = item.category;
-    state.count = item.count;
-    state.models = item.models;
-    state.generatedImages = item.images || [];
-    state.currentHistoryId = item.id;
-
-    // Restore UI
-    // 1. Select Category
-    document.querySelectorAll('#category-grid .tile').forEach(t => {
-        t.classList.toggle('selected', t.dataset.value === item.category);
-    });
-
-    // 2. Select Count
-    document.querySelectorAll('#count-grid .tile').forEach(t => {
-        t.classList.toggle('selected', parseInt(t.dataset.value) === item.count);
-    });
-
-    // 3. Select Model
-    document.querySelectorAll('#model-grid .tile').forEach(t => {
-        // Handle array of models
-        const isSelected = item.models.includes(t.dataset.value);
-        t.classList.toggle('selected', isSelected);
-    });
-
-    // 4. Set Prompt
-    const promptInput = document.getElementById('prompt'); // Ensure correct ID
-    if (promptInput) promptInput.value = item.prompt;
-
-    // 5. Show Sections
-    if (countSection) countSection.classList.remove('hidden');
-    if (modelSection) modelSection.classList.remove('hidden');
-    if (instructionSection) instructionSection.classList.remove('hidden');
-    if (generateBtn) generateBtn.classList.remove('hidden');
-
-    // 6. Show Results
-    if (resultsSection) resultsSection.style.display = 'block';
-    resultsGrid.innerHTML = '';
-
-    // Update Generate Button State based on history item status
-    if (item.status === 'generating') {
-        generateBtn.disabled = true;
-        generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
-    } else {
-        resetUI();
-    }
-
-    // Create placeholders for all images first
-    // Calculate total slots needed: max of requested count or highest image index (for refined images)
-    const maxIndex = item.images && item.images.length > 0
-        ? Math.max(...item.images.map(img => img.index))
-        : 0;
-    const totalSlots = Math.max(item.count, maxIndex);
-
-    for (let i = 0; i < totalSlots; i++) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'result-item placeholder';
-        placeholder.id = `result-item-${i + 1}`;
-        placeholder.innerHTML = `
-            <div class="placeholder-content">
-                <div class="spinner"></div>
-                <p class="placeholder-status">Loading...</p>
-            </div>
-        `;
-        resultsGrid.appendChild(placeholder);
-    }
-
-    // Re-render images with success flag
-    item.images.forEach(img => {
-        const imageWithSuccess = {
-            ...img,
-            success: true
-        };
-        updatePlaceholderWithImage(img.index, imageWithSuccess);
-    });
-
-    // Highlight active history item
-    document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
-    // We'd need to find the element again or re-render, but simple re-render works
-    renderHistory();
-}
-
-function setupStyleSelection() {
-    if (!styleGrid) return;
-
-    const tiles = styleGrid.querySelectorAll('.tile');
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            // Remove selected class from all style tiles
-            tiles.forEach(t => t.classList.remove('selected'));
-
-            // Select clicked tile
-            tile.classList.add('selected');
-            state.style = tile.dataset.value;
-            console.log('Style set to:', state.style);
-        });
-    });
-
-    // Set default selection
-    const defaultTile = styleGrid.querySelector('[data-value="original"]');
-    if (defaultTile) defaultTile.classList.add('selected');
-}
+init();

@@ -858,48 +858,75 @@ CRITICAL REQUIREMENTS:
         Returns:
             Prompt string
         """
+        style = kwargs.get('style', 'realistic')
         orientation_desc = "LANDSCAPE" if config['width'] > config['height'] else "PORTRAIT"
-        prompt = f"""Create a professional, semi-realistic illustration showing {context}.
+        
+        # COMMON STRICT CONSTRAINTS (Applies to ALL styles)
+        strict_constraints = """
+        CRITICAL - ZERO TOLERANCE RULES:
+        1. NO MATHEMATICAL ELEMENTS: ABSOLUTELY NO numbers, NO equations, NO formulas, NO graphs, NO charts, NO diagrams.
+        2. NO GEOMETRIC OVERLAYS: ABSOLUTELY NO lines, NO curves, NO projectiles, NO dotted lines, NO arrows, NO grids.
+        3. NO TEXT: ABSOLUTELY NO words, NO letters, NO labels, NO speech bubbles, NO captions.
+        4. ACCURACY: The image must ONLY show details relevant to the context: "{context}". Do NOT add generic elements from other contexts.
+        5. NO EDUCATIONAL DIAGRAMS: This is a SCENE, not a textbook diagram.
+        """
 
-Aspect ratio {config['aspect_ratio']} ({config['width']}x{config['height']}) - {orientation_desc} orientation.
+        if style == 'cartoon':
+            prompt = f"""Create a vivid, high-quality 3D ANIMATION STYLE illustration of {context}.
+            
+            Aspect ratio {config['aspect_ratio']} ({config['width']}x{config['height']}) - {orientation_desc} orientation.
+            
+            {strict_constraints}
+            
+            Visual Style (CARTOON / 3D ANIMATION):
+            - High-end 3D animated movie aesthetic (Pixar/Disney/Dreamworks quality)
+            - Vibrant, expressive colors and lighting
+            - Soft, appealing textures and clay-like rendering
+            - Clean, stylized shapes with smooth edges
+            - Cinematic composition typical of modern animated films
+            - LOOKS LIKE A STILL FROM A FEATURE ANIMATED MOVIE
+            
+            Context Scene ({context}):
+            - Show a stylized but RECOGNIZABLE representation of: {context}
+            - Focus on the SETTING and OBJECTS that define this context
+            - If characters are necessary for the context (e.g., "Water Skiing"), they must be stylized characters consistent with the animation style.
+            - If the context implies a specific location (e.g., "Airport"), focus on the environment.
+            - Atmosphere: Cheerful, inviting, and clear.
+            """
+        else: # default to realistic
+            prompt = f"""Create a cinematic, photorealistic image capturing a real-world scene of {context}.
+            
+            Aspect ratio {config['aspect_ratio']} ({config['width']}x{config['height']}) - {orientation_desc} orientation.
+            
+            {strict_constraints}
+            
+            Visual Style (REALISTIC / CINEMATIC):
+            - Photorealistic, 8k resolution, highly detailed
+            - Cinematic lighting and composition
+            - Natural color palette
+            - LOOKS LIKE A PROFESSIONAL PHOTOGRAPH or HIGH-END MOVIE STILL
+            - NOT an illustration, NOT a sketch, NOT a painting.
+            
+            Context Scene ({context}):
+            - Real-world scenario: {context}
+            - Setting: Immersive, realistic environment appropriate to the context
+            - Elements: ONLY physical, real-world objects found in this setting. 
+            - Atmosphere: Natural lighting, atmospheric depth, photorealistic textures.
+            """
 
-Context Scene (CRITICAL - MUST BE ACCURATE):
-- Real-world scenario: {context}
-- Setting: Appropriate and ACCURATE to the context (field, court, building, nature, etc.)
-- Perspective: Dynamic/strategic/architectural angle showing the context clearly
-- Elements: Context-specific elements that are REALISTIC and ACCURATE to {context}
-- Atmosphere: Inspiring, dynamic, professional, and engaging
-- MUST accurately represent the actual context of {context}
-
-Visual Style:
-- Semi-realistic, high-quality illustration
-- Professional, polished, editorial quality
-- Context-appropriate color palette
-- Clear, clean composition
-- NO text, NO words, NO labels
-- NO mathematical overlays or diagrams (just the pure context scene)
-
-Composition:
-- Context as the sole focus (100%)
-- Balanced, harmonious layout
-- Clear foreground and background
-- Professional framing
-
-Lighting & Mood:
-- Natural lighting appropriate to context
-- Inspiring and practical atmosphere
-- Clear visibility of all elements
-- Professional educational quality
-- Engaging and relatable
-
-CRITICAL REQUIREMENTS:
-- Context ({context}) must be ACCURATELY and REALISTICALLY represented
-- NO TEXT, NO WORDS, NO LABELS, NO EXPLANATIONS in the image
-- NO mathematical symbols, numbers, lines, or overlays
-- Just the pure, high-quality illustration of the scene
-- Professional, high-quality illustration
-- Clear educational value as a context setter
-- Not too cluttered - maintain clarity
-- Scene must be contextually accurate to {context}"""
-
+        # Common negative prompt
+        prompt += """
+        
+        NEGATIVE PROMPT (STRICT):
+        text, writing, words, letters, alphabet, numbers, digits, equations, formulas, math symbols, 
+        plus sign, minus sign, equals sign, x, y, variables, 
+        diagram, infographic, chart, graph, plot, grid, axis, coordinates, 
+        lines, dotted lines, dashed lines, arrows, pointers, labels, annotations, 
+        projectiles, trajectory paths, geometric shapes overlay, 
+        watermark, signature, logo, brand name, trademark, 
+        blurry, low quality, distorted, bad anatomy, deformed, 
+        mixed context, irrelevant objects, generic crowd, random people.
+        """
+        
         return prompt
+```
