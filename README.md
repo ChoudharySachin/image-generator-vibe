@@ -1,202 +1,208 @@
-# Image Generator - Educational Content
+# Image Generator - Static Version
 
-A web-based image generation system using Google Gemini 2.5 Flash model to create educational images across four categories with maximum transparency and control.
+This is a **static, client-side** version of the Tutero Image Generator that can be deployed to **GitHub Pages** or any static hosting service.
 
-## 📁 Project Structure
+## 🌟 Features
 
-```
-image-generator/
-├── reference_images/          # Your reference images go here
-│   ├── subtopic_cover/       # 16:9 (1920x1080) - Educational subtopic covers
-│   ├── tutero_ai/            # 9:16 (1080x1920) - AI assistant images
-│   ├── classroom_activity/   # 9:16 (1080x1920) - Classroom scenes
-│   └── context_introduction/ # 16:9 (1920x1080) - Real-world contexts
-├── config/                    # Configuration files
-├── src/                       # Source code
-├── static/                    # Web UI assets (CSS, JS)
-├── templates/                 # HTML templates
-├── output/                    # Generated images
-└── logs/                      # Generation and debug logs
-```
+- **Pure Client-Side**: No backend server required - runs entirely in the browser
+- **Direct API Integration**: Connects directly to OpenRouter API from the browser
+- **Local Storage**: API keys and history stored securely in browser localStorage
+- **Fully Responsive**: Works on desktop, tablet, and mobile devices
+- **GitHub Pages Ready**: Can be deployed instantly to GitHub Pages
 
 ## 🚀 Quick Start
 
-### 1. Set Up Reference Images
+### Option 1: Local Development
 
-Navigate to each category folder in `reference_images/` and:
-1. Read the `README.md` for specifications
-2. Copy your reference images into the `images/` subfolder
-3. Edit `description.txt` to describe the visual style
+1. **Open the file directly in your browser**:
+   ```bash
+   open index.html
+   ```
+   
+   Or use a simple HTTP server:
+   ```bash
+   # Python 3
+   python3 -m http.server 8000
+   
+   # Node.js (if you have npx)
+   npx serve
+   ```
 
-**Example:**
-```bash
-# Copy your images
-cp ~/my-images/subtopic-*.png reference_images/subtopic_cover/images/
+2. **Enter your OpenRouter API Key**:
+   - Click on "API Key" in the sidebar
+   - Enter your OpenRouter API key (get one at https://openrouter.ai)
+   - The key is stored locally in your browser
 
-# Edit the description
-nano reference_images/subtopic_cover/description.txt
+3. **Generate Images**:
+   - Select an image type
+   - Choose orientation, count, and model
+   - Describe your image
+   - Click "Generate Images"
+
+### Option 2: Deploy to GitHub Pages
+
+1. **Create a new GitHub repository** or use an existing one
+
+2. **Push the static files**:
+   ```bash
+   git add index.html static/
+   git commit -m "Add static image generator"
+   git push origin main
+   ```
+
+3. **Enable GitHub Pages**:
+   - Go to your repository settings
+   - Navigate to "Pages" section
+   - Select "main" branch as source
+   - Click "Save"
+
+4. **Access your site**:
+   - Your site will be available at: `https://[username].github.io/[repo-name]/`
+
+## 📁 File Structure
+
+```
+image-generator/
+├── index.html              # Main HTML file
+├── static/
+│   ├── css/
+│   │   └── style.css       # Styles
+│   ├── js/
+│   │   ├── app.js          # Main application logic
+│   │   ├── api.js          # API integration
+│   │   ├── config.js       # Configuration
+│   │   └── promptBuilder.js # Prompt building logic
+│   └── images/
+│       └── tutero-logo.png # Logo
+└── reference_images/       # Reference images for character consistency
 ```
 
-### 2. Install Dependencies
+## 🔑 API Key Setup
 
-```bash
-# Create virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+This application requires an **OpenRouter API key** to generate images.
 
-# Install requirements
-pip install -r requirements.txt
-```
+1. **Get an API Key**:
+   - Visit https://openrouter.ai
+   - Sign up or log in
+   - Navigate to "Keys" section
+   - Create a new API key
 
-### 3. Configure Environment
+2. **Add Credits**:
+   - Add credits to your OpenRouter account
+   - Image generation costs vary by model
 
-The `.env` file is already configured with your API key. You can modify settings if needed:
-
-```bash
-nano .env
-```
-
-### 4. Run the Web Interface
-
-```bash
-python src/app.py
-```
-
-Then open your browser to: **http://localhost:5000**
+3. **Enter Key in App**:
+   - Click "API Key" in the sidebar
+   - Paste your key (starts with `sk-or-...`)
+   - Key is stored in browser localStorage (never sent to any server except OpenRouter)
 
 ## 🎨 Image Categories
 
-| Category | Aspect Ratio | Resolution | Purpose |
-|----------|-------------|------------|---------|
-| **Subtopic Cover** | 16:9 | 1920 x 1080 | Educational subtopic covers |
-| **Tutero AI** | 1500:1060 | 1500 x 1060 | AI assistant helping students |
-| **Classroom Activity** | 1500:1060 | 1500 x 1060 | Students in classroom settings |
-| **Context Introduction** | 16:9 | 1920 x 1080 | Real-world applications |
+1. **Subtopic Cover**: Educational cover images for math topics
+2. **Tutero AI**: AI character in various learning contexts
+3. **Classroom Activity**: Students learning with AI assistant
+4. **Context Introduction**: Real-world math applications
 
-## 🖥️ Using the Web Interface
+## 🔒 Security & Privacy
 
-1. **Select Category** - Choose from the dropdown (4 options)
-2. **Enter Instructions** - Describe the image you want to generate
-3. **Click Generate** - Creates 4 images automatically
-4. **View Results** - Images appear in the gallery with download buttons
-5. **Check Debug Panel** - View prompts, logs, and validation details
+- **API keys are stored locally** in your browser's localStorage
+- **No backend server** - all processing happens in your browser
+- **Direct API calls** to OpenRouter from your browser
+- **History stored locally** - never leaves your device
 
-### Example Prompts
+## ⚙️ Configuration
 
-**Subtopic Cover:**
-```
-Create a cover image for an Algebra unit featuring equations, 
-graphs, and mathematical symbols in a modern, vibrant style
-```
+Edit `static/js/config.js` to customize:
+- Available models
+- Image dimensions
+- Aspect ratios
+- Style templates
+- API endpoints
 
-**Tutero AI:**
-```
-Show a friendly AI assistant helping a high school student 
-solve a geometry problem on a tablet
-```
+## 🛠️ Customization
 
-**Classroom Activity:**
-```
-Diverse group of students collaborating on a math project 
-with whiteboards and laptops in a modern classroom
-```
+### Adding New Styles
 
-**Context Introduction:**
-```
-Architecture and engineering applications of trigonometry, 
-showing bridges and buildings with geometric overlays
+Edit `static/js/config.js` and add to the `styles` array:
+
+```javascript
+{
+  id: "my_style",
+  name: "My Style",
+  description: "Custom style description",
+  prompt_template: "Your custom prompt template..."
+}
 ```
 
-## 🔍 Transparency & Control Features
+### Changing Models
 
-- **Dry-Run Mode**: Test without API calls (set `DRY_RUN=true` in `.env`)
-- **Detailed Logging**: All operations logged to `logs/` directory
-- **Debug Panel**: View exact prompts, API responses, and validation
-- **Cost Tracking**: Monitor API usage and estimated costs
-- **Generation History**: Review all past generations
-- **Validation Reports**: Automatic aspect ratio and quality checks
+Update the model selection in `static/js/config.js`:
 
-## 📊 Configuration
-
-### Main Config: `config/default_config.yaml`
-- API settings (timeout, retries)
-- Generation parameters (4 images per prompt)
-- Logging levels
-- Validation thresholds
-- Cost limits
-
-### Categories: `config/image_categories.yaml`
-- Aspect ratios for each category
-- Reference image directories
-- Category descriptions
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Test specific component
-pytest tests/test_prompt_builder.py -v
-
-# Test with dry-run mode
-DRY_RUN=true python src/app.py
+```javascript
+api: {
+  defaultModel: "google/gemini-2.5-flash-image",
+  // ... other config
+}
 ```
 
-## 📝 Logs
+## 🌐 Browser Compatibility
 
-All operations are logged for debugging:
+- ✅ Chrome/Edge (recommended)
+- ✅ Firefox
+- ✅ Safari
+- ⚠️ Requires modern browser with ES6 module support
 
-- **Generation Logs**: `logs/generation_logs/` - High-level workflow
-- **Debug Logs**: `logs/debug_logs/` - Detailed technical info
-- **Console Output**: Real-time feedback during generation
+## 📝 Limitations
 
-## 💰 Cost Management
+Compared to the Python backend version:
 
-- Set budget limits in `.env` (`MAX_COST_LIMIT`)
-- View cost reports in the web UI
-- Automatic warnings at 80% of budget
-- Dry-run mode for testing without charges
+- **No server-side processing**: All logic runs in browser
+- **CORS restrictions**: Some reference images may not load due to CORS
+- **No WebSocket**: Real-time updates not available (uses polling instead)
+- **Browser storage limits**: History limited by localStorage size
+- **API key exposure**: Key is visible in browser (use with caution on shared devices)
 
-## 🛠️ Troubleshooting
+## 🔄 Migration from Python Version
 
-### No images generated
-- Check API key in `.env`
-- Verify reference images exist in category folders
-- Check logs in `logs/debug_logs/`
+If you were using the Python Flask version:
 
-### Aspect ratio mismatch
-- Verify category configuration in `config/image_categories.yaml`
-- Check validation tolerance in `config/default_config.yaml`
+1. **Export your history** (if needed)
+2. **Copy reference images** to `reference_images/` directory
+3. **Update API key** in the new interface
+4. **Test image generation** with a simple prompt
 
-### Web UI not loading
-- Ensure port 5000 is available
-- Check Flask debug output in terminal
-- Verify all dependencies installed
+## 📚 Resources
 
-## 📚 Next Steps
+- [OpenRouter Documentation](https://openrouter.ai/docs)
+- [Gemini API Documentation](https://ai.google.dev/gemini-api/docs)
+- [GitHub Pages Documentation](https://docs.github.com/en/pages)
 
-1. **Add Reference Images**: Copy your images to the appropriate folders
-2. **Customize Descriptions**: Edit `description.txt` files for each category
-3. **Test Generation**: Start with dry-run mode to verify setup
-4. **Generate Images**: Use the web interface to create your first batch
-5. **Review Results**: Check the debug panel and logs for insights
+## 🐛 Troubleshooting
 
-## 🔐 Security Notes
+### Images not generating?
+- Check your API key is correct
+- Verify you have credits in OpenRouter
+- Check browser console for errors
+- Try a different model
 
-- **Never commit `.env`** to version control (already in `.gitignore`)
-- Change `FLASK_SECRET_KEY` in production
-- Keep API keys secure and rotate regularly
-- Use environment variables for sensitive data
+### Reference images not loading?
+- Ensure images are in `reference_images/` directory
+- Check file paths in `api.js`
+- Verify CORS headers if hosting externally
 
-## 📞 Support
+### History not saving?
+- Check browser localStorage is enabled
+- Clear browser cache and try again
+- Check browser console for errors
 
-For issues or questions:
-1. Check the debug panel in the web UI
-2. Review logs in `logs/debug_logs/`
-3. Verify configuration in `config/` files
-4. Test with dry-run mode enabled
+## 📄 License
+
+Same as the original Python version.
+
+## 🤝 Contributing
+
+Contributions welcome! Please test thoroughly before submitting PRs.
 
 ---
 
-**Ready to generate educational images with maximum control and transparency!** 🎓✨
+**Note**: This is a simplified, client-side version. For production use with sensitive data, consider using the Python backend version with proper authentication and security measures.
