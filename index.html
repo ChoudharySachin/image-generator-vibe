@@ -4,11 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Generator - Educational Content</title>
-    <!-- Google Fonts Preconnect -->
+    <title>Tutero Content Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="static/css/style.css?v=2">
+    <link rel="stylesheet" href="static/css/style.css?v=6">
 </head>
 
 <body>
@@ -16,11 +15,15 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>History</h2>
-                <button id="clear-history-btn" class="clear-history-btn" title="Clear all history">🗑️</button>
+                <h2>
+                    <img src="static/images/bot-head.png" alt="">
+                    Tutero Image Generator
+                </h2>
             </div>
+
+            <div class="history-section-title">Recent Generations</div>
+
             <div id="history-list" class="history-list">
-                <!-- History items will be added here -->
                 <div class="empty-history">No history yet</div>
             </div>
 
@@ -35,10 +38,8 @@
                     <div class="accordion-content hidden" id="api-keys-content">
                         <div class="api-key-group">
                             <label for="openrouter-key">OpenRouter API Key</label>
-                            <input type="password" id="openrouter-key" class="form-control api-input"
-                                placeholder="sk-or-...">
+                            <input type="password" id="openrouter-key" class="api-input" placeholder="sk-or-...">
                         </div>
-                        <p class="api-help-text">Keys are stored locally in your browser cache</p>
                     </div>
                 </div>
             </div>
@@ -47,186 +48,222 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="container">
-                <header>
-                    <h1>
-                        <img src="static/images/tutero-logo.png" alt="Tutero Logo" class="header-logo">
-                        Tutero Image Generator
-                    </h1>
-                </header>
-
                 <main>
-                    <div class="generator-card">
-                        <div class="form-section">
-                            <!-- Image Type Selection -->
-                            <div class="selection-section">
-                                <label class="section-label">1. Select Image Type</label>
-                                <div class="tile-grid" id="category-grid">
-                                    <div class="tile" data-value="subtopic_cover">
-                                        <div class="tile-icon">📚</div>
-                                        <div class="tile-label">Subtopic Cover</div>
-                                    </div>
-                                    <div class="tile" data-value="tutero_ai">
-                                        <div class="tile-icon">🤖</div>
-                                        <div class="tile-label">Tutero AI</div>
-                                    </div>
-                                    <div class="tile" data-value="classroom_activity">
-                                        <div class="tile-icon">🏫</div>
-                                        <div class="tile-label">Classroom Activity</div>
-                                    </div>
-                                    <div class="tile" data-value="context_introduction">
-                                        <div class="tile-icon">🌍</div>
-                                        <div class="tile-label">Context Intro</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Style Selection -->
-                            <div class="selection-section hidden" id="style-section" style="display: none;">
-                                <label class="section-label">2. Select Style</label>
-                                <div class="tile-grid style-grid" id="style-grid">
-                                    <div class="tile style-tile subtopic-style" data-value="original">
-                                        <div class="tile-icon">📐</div>
-                                        <div class="tile-label">Original</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="glossy_3d">
-                                        <div class="tile-icon">💎</div>
-                                        <div class="tile-label">Glossy 3D</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="flat_3d">
-                                        <div class="tile-icon">🎨</div>
-                                        <div class="tile-label">Flat 3D</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="minimal_clean_3d">
-                                        <div class="tile-icon">✨</div>
-                                        <div class="tile-label">Minimal 3D</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="paper_craft">
-                                        <div class="tile-icon">📄</div>
-                                        <div class="tile-label">Paper-craft</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="watercolor">
-                                        <div class="tile-icon">🖌️</div>
-                                        <div class="tile-label">Watercolor</div>
-                                    </div>
-                                    <div class="tile style-tile subtopic-style" data-value="hand_drawn_chalk">
-                                        <div class="tile-icon">🖍️</div>
-                                        <div class="tile-label">Chalk</div>
-                                    </div>
-                                    <div class="tile style-tile context-style" data-value="realistic"
-                                        style="display: none;">
-                                        <div class="tile-icon">📸</div>
-                                        <div class="tile-label">Realistic</div>
-                                    </div>
-                                    <div class="tile style-tile context-style" data-value="cartoon"
-                                        style="display: none;">
-                                        <div class="tile-icon">🎨</div>
-                                        <div class="tile-label">Cartoon</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Image Count Selection -->
-                            <div class="selection-section hidden" id="count-section">
-                                <label class="section-label">2. Number of Images</label>
-                                <div class="tile-grid count-grid" id="count-grid">
-                                    <div class="tile count-tile" data-value="1"><span class="count-label">1</span></div>
-                                    <div class="tile count-tile" data-value="2"><span class="count-label">2</span></div>
-                                    <div class="tile count-tile" data-value="3"><span class="count-label">3</span></div>
-                                    <div class="tile count-tile" data-value="4"><span class="count-label">4</span></div>
-                                </div>
-                            </div>
-
-                            <!-- Model Selection -->
-                            <div class="selection-section hidden" id="model-section">
-                                <label class="section-label">3. Select Model</label>
-                                <div class="tile-grid model-grid" id="model-grid">
-                                    <div class="tile model-tile selected" data-value="google/gemini-2.5-flash-image">
-                                        <div class="tile-icon">⚡</div>
-                                        <div class="tile-label">Gemini 2.5 Flash</div>
-                                    </div>
-                                    <div class="tile model-tile" data-value="google/gemini-3-pro-image-preview">
-                                        <div class="tile-icon">🧠</div>
-                                        <div class="tile-label">Gemini 3 Pro</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Orientation Selection -->
-                            <div class="selection-section hidden" id="orientation-section">
-                                <label class="section-label">Orientation</label>
-                                <div class="orientation-grid">
-                                    <div class="orientation-tile selected" data-value="landscape">
-                                        <div class="orientation-icon">
-                                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor"
-                                                fill="none" stroke-width="2">
-                                                <rect x="3" y="6" width="18" height="12" rx="2" ry="2"></rect>
-                                                <circle cx="12" cy="12" r="2"></circle>
-                                            </svg>
-                                        </div>
-                                        <div class="orientation-info">
-                                            <span class="orientation-name">Landscape</span>
-                                            <span class="orientation-ratio">16:9</span>
-                                        </div>
-                                    </div>
-                                    <div class="orientation-tile" data-value="portrait">
-                                        <div class="orientation-icon">
-                                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor"
-                                                fill="none" stroke-width="2">
-                                                <rect x="6" y="3" width="12" height="18" rx="2" ry="2"></rect>
-                                                <circle cx="12" cy="12" r="2"></circle>
-                                            </svg>
-                                        </div>
-                                        <div class="orientation-info">
-                                            <span class="orientation-name">Portrait</span>
-                                            <span class="orientation-ratio">9:16</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="input-group hidden" id="instruction-section">
-                                <label for="prompt">Image Description *</label>
-                                <div class="prompt-container">
-                                    <input type="text" id="prompt" class="form-control"
-                                        placeholder="Describe your image... e.g., 'A cute robot mascot in a classroom'"
-                                        autocomplete="off">
-                                    <div class="prompt-toolbar">
-                                        <label for="file-upload" class="attachment-btn" title="Add reference images">
-                                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
-                                                fill="none" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
-                                                <path
-                                                    d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
-                                                </path>
-                                            </svg>
-                                        </label>
-                                        <input type="file" id="file-upload" multiple accept="image/*"
-                                            style="display: none;">
-                                    </div>
-                                </div>
-                                <div id="attachments-preview" class="attachments-preview"></div>
-                            </div>
-
-                            <button id="generate-btn" class="btn btn-primary hidden">
-                                <span class="btn-text">Generate Images</span>
-                                <span class="btn-icon">✨</span>
-                            </button>
+                    <div class="studio-header">
+                        <div class="studio-tabs">
+                            <button id="tab-generate" class="studio-tab active" data-studio="generate">Generate
+                                Studio</button>
+                            <button id="tab-edit" class="studio-tab" data-studio="edit">Edit Studio</button>
                         </div>
+                        <button id="restart-btn" class="restart-btn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"
+                                stroke-width="2">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                            Restart
+                        </button>
+                    </div>
 
-                        <!-- Progress Section -->
-                        <div id="progress-section" class="progress-section" style="display: none;">
-                            <div class="progress-bar-container">
-                                <div id="progress-bar" class="progress-bar"></div>
+                    <div id="generate-studio" class="studio-content">
+                        <div class="generator-card">
+                            <div class="form-section">
+                                <!-- Image Type Selection -->
+                                <div class="selection-section">
+                                    <!-- Top Form Row: Category, Style, Count, Model -->
+                                    <div class="form-row">
+                                        <!-- Image Type Selection -->
+                                        <div class="form-group">
+                                            <label for="category-select" class="section-label">Image Type</label>
+                                            <select id="category-select" class="form-control">
+                                                <option value="" disabled selected>Select Type</option>
+                                                <option value="subtopic_cover">Subtopic Cover</option>
+                                                <option value="tutero_ai">Tutero AI</option>
+                                                <option value="classroom_activity">Classroom Activity</option>
+                                                <option value="context_introduction">Context Intro</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Style Selection -->
+                                        <div class="form-group" id="style-group">
+                                            <label for="style-select" class="section-label">Style</label>
+                                            <select id="style-select" class="form-control" disabled>
+                                                <option value="original">Original</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Count Selection -->
+                                        <div class="form-group" style="max-width: 100px;">
+                                            <label for="count-select" class="section-label">Images</label>
+                                            <select id="count-select" class="form-control">
+                                                <option value="1" selected>1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Model Selection -->
+                                        <div class="form-group" style="flex: 1.5;">
+                                            <label for="model-select" class="section-label">Model</label>
+                                            <select id="model-select" class="form-control">
+                                                <option value="google/gemini-2.5-flash-image" selected>Google Nano
+                                                    Banana</option>
+                                                <option value="google/gemini-3-pro-image-preview">Google Nano Banana Pro
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Orientation Selection -->
+                                    <div class="selection-section hidden" id="orientation-section">
+                                        <label class="section-label">Orientation</label>
+                                        <div class="orientation-grid">
+                                            <div class="orientation-tile selected" data-value="landscape">
+                                                <div class="orientation-icon">
+                                                    <svg viewBox="0 0 24 24" width="24" height="24"
+                                                        stroke="currentColor" fill="none" stroke-width="2">
+                                                        <rect x="3" y="6" width="18" height="12" rx="2" ry="2"></rect>
+                                                        <circle cx="12" cy="12" r="2"></circle>
+                                                    </svg>
+                                                </div>
+                                                <div class="orientation-info">
+                                                    <span class="orientation-name">Landscape</span>
+                                                    <span class="orientation-ratio">16:9</span>
+                                                </div>
+                                            </div>
+                                            <div class="orientation-tile" data-value="portrait">
+                                                <div class="orientation-icon">
+                                                    <svg viewBox="0 0 24 24" width="24" height="24"
+                                                        stroke="currentColor" fill="none" stroke-width="2">
+                                                        <rect x="6" y="3" width="12" height="18" rx="2" ry="2"></rect>
+                                                        <circle cx="12" cy="12" r="2"></circle>
+                                                    </svg>
+                                                </div>
+                                                <div class="orientation-info">
+                                                    <span class="orientation-name">Portrait</span>
+                                                    <span class="orientation-ratio">9:16</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group hidden" id="instruction-section">
+                                        <label for="prompt">Image Description</label>
+                                        <div class="prompt-container">
+                                            <textarea id="prompt" class="form-control" rows="3"
+                                                placeholder="Describe your image... e.g., 'A cute robot mascot in a classroom'"></textarea>
+                                            <div class="prompt-toolbar">
+                                                <label for="file-upload" class="attachment-btn"
+                                                    title="Add reference images">
+                                                    <svg viewBox="0 0 24 24" width="20" height="20"
+                                                        stroke="currentColor" fill="none" stroke-width="2"
+                                                        stroke-linecap="round" stroke-linejoin="round">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                                    </svg>
+                                                </label>
+                                                <input type="file" id="file-upload" multiple accept="image/*"
+                                                    style="display: none;">
+                                            </div>
+                                        </div>
+                                        <div id="attachments-preview" class="attachments-preview"></div>
+                                    </div>
+
+                                    <button id="generate-btn" class="btn btn-primary hidden">
+                                        <span class="btn-text">Generate Images</span>
+                                        <span class="btn-icon">✨</span>
+                                    </button>
+                                </div>
+
+
+
+                                <!-- Results Section -->
+                                <div id="results-section" class="results-section" style="display: none;">
+                                    <h2>Generated Images</h2>
+                                    <div id="results-grid" class="results-grid"></div>
+                                    <div class="results-info" style="display:none">
+                                        <!-- Hidden as per new design preference, or keep if useful -->
+                                        <p id="results-summary"></p>
+                                    </div>
+                                </div>
                             </div>
-                            <p id="progress-status" class="progress-status">Initializing...</p>
                         </div>
+                    </div>
 
-                        <!-- Results Section -->
-                        <div id="results-section" class="results-section" style="display: none;">
-                            <h2>Generated Images</h2>
-                            <div id="results-grid" class="results-grid"></div>
-                            <div class="results-info">
-                                <p id="results-summary"></p>
+                    <!-- Edit Studio Content -->
+                    <div id="edit-studio" class="studio-content hidden">
+                        <div class="generator-card">
+                            <div class="form-section">
+                                <div class="selection-section">
+                                    <div class="form-row">
+                                        <div class="form-group" style="max-width: 100px;">
+                                            <label for="edit-count-select" class="section-label">Images</label>
+                                            <select id="edit-count-select" class="form-control">
+                                                <option value="1" selected>1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" style="flex: 1.5;">
+                                            <label for="edit-model-select" class="section-label">Model</label>
+                                            <select id="edit-model-select" class="form-control">
+                                                <option value="google/gemini-2.5-flash-image" selected>Google Nano
+                                                    Banana</option>
+                                                <option value="google/gemini-3-pro-image-preview">Google Nano Banana Pro
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="edit-studio-layout">
+                                        <div class="edit-upload-section">
+                                            <label class="section-label">Image to Edit</label>
+                                            <div id="edit-image-container" class="edit-image-container empty">
+                                                <div class="upload-placeholder">
+                                                    <svg viewBox="0 0 24 24" width="48" height="48"
+                                                        stroke="currentColor" fill="none" stroke-width="1.5">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                                    </svg>
+                                                    <p>Upload an image to edit</p>
+                                                    <button class="btn btn-secondary"
+                                                        onclick="document.getElementById('edit-file-upload').click()">Choose
+                                                        File</button>
+                                                </div>
+                                                <img id="edit-preview-image" src="" alt="To edit" class="hidden">
+                                                <input type="file" id="edit-file-upload" accept="image/*"
+                                                    style="display: none;">
+                                                <button id="remove-edit-image"
+                                                    class="attachment-remove hidden">×</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="edit-prompt-section">
+                                            <div class="input-group">
+                                                <label for="edit-prompt">What would you like to change?</label>
+                                                <div class="prompt-container">
+                                                    <textarea id="edit-prompt" class="form-control"
+                                                        placeholder="Describe the changes... e.g., 'Make the robot blue', 'Add a chalkboard'"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button id="edit-generate-btn" class="btn btn-primary">
+                                        <span class="btn-text">Edit Image</span>
+                                        <span class="btn-icon">✨</span>
+                                    </button>
+                                </div>
+
+                                <!-- Results Section -->
+                                <div id="edit-results-section" class="results-section" style="display: none;">
+                                    <h2>Generated Variations</h2>
+                                    <div id="edit-results-grid" class="results-grid"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,15 +281,15 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="refine-input">What would you like to change?</label>
+                    <label for="refine-input"
+                        style="color:var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display:block">Instructions</label>
                     <textarea id="refine-input" class="form-control"
-                        placeholder="E.g., Make the background brighter, remove the text..." rows="3"></textarea>
+                        placeholder="Make the background brighter, remove the text..." rows="3"></textarea>
                 </div>
                 <div class="modal-actions">
                     <button class="btn btn-secondary close-modal-btn">Cancel</button>
-                    <button id="confirm-refine-btn" class="btn btn-primary">
-                        <span class="btn-text">Refine</span>
-                        <span class="btn-icon">✨</span>
+                    <button id="confirm-refine-btn" class="btn btn-primary" style="width: auto; margin:0;">
+                        Refine
                     </button>
                 </div>
             </div>
@@ -267,7 +304,11 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- History Hover Preview -->
+    <div id="history-hover-preview" class="history-hover-preview">
+        <div class="history-preview-grid" id="history-preview-grid"></div>
+    </div>
+
     <script type="module" src="static/js/app.js"></script>
 </body>
 

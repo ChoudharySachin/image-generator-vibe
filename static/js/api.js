@@ -6,7 +6,7 @@ export class GeminiAPI {
     }
 
     async generateImage(params) {
-        const {
+        let {
             prompt,
             category,
             model,
@@ -17,7 +17,50 @@ export class GeminiAPI {
             systemReferenceImages = []
         } = params;
 
-        const effectiveModel = model || CONFIG.api.defaultModel;
+        // Case-insensitive check for any variation of 'free model' or 'free-model'
+        const isFreeModel = typeof model === 'string' &&
+            (model.toLowerCase() === 'free-model' || model.toLowerCase() === 'free model');
+
+        let modelsToTry = [];
+        if (isFreeModel) {
+            console.log("Free model selected, using fallback list:", CONFIG.api.freeModels);
+            modelsToTry = CONFIG.api.freeModels;
+        } else if (Array.isArray(model)) {
+            modelsToTry = model;
+        } else {
+            modelsToTry = [model || CONFIG.api.defaultModel];
+        }
+
+        let lastError = null;
+
+        for (const currentModel of modelsToTry) {
+            try {
+                console.log(`Attempting generation with model: ${currentModel}`);
+                const imageUrl = await this._executeGeneration({
+                    ...params,
+                    model: currentModel
+                });
+                return imageUrl;
+            } catch (error) {
+                console.warn(`Model ${currentModel} failed:`, error.message);
+                lastError = error;
+                // If there are more models to try, continue the loop
+                continue;
+            }
+        }
+
+        throw lastError || new Error("All models failed to generate an image");
+    }
+
+    async _executeGeneration(params) {
+        const {
+            prompt,
+            model,
+            width,
+            height,
+            userReferenceImages = [],
+            systemReferenceImages = []
+        } = params;
 
         // Build the full content array
         const content = [];
@@ -73,8 +116,6 @@ export class GeminiAPI {
             enhancedPrompt += `   → Only include elements present in or implied by the reference/description.\n`;
             enhancedPrompt += `   → Do NOT add decorative clutter that is not in the style or reference.\n`;
 
-
-
             enhancedPrompt += `⚠️ ABSOLUTE TEXT PROHIBITION:\n`;
             enhancedPrompt += `DO NOT include any text, labels, titles, captions, or written words in the image.\n`;
             enhancedPrompt += `The image must be purely visual. If the reference image contains text/numbers as\n`;
@@ -99,7 +140,7 @@ export class GeminiAPI {
         const arParam = this._getAspectRatioParam(width, height);
 
         const payload = {
-            model: effectiveModel,
+            model: model,
             messages: [
                 {
                     role: "user",
@@ -131,7 +172,6 @@ export class GeminiAPI {
                 const errorData = await response.json();
                 console.error('API Error Response:', errorData);
 
-                // Handle different error formats
                 if (errorData.error?.message) {
                     errorMessage = errorData.error.message;
                 } else if (errorData.message) {
@@ -140,7 +180,6 @@ export class GeminiAPI {
                     errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
                 }
 
-                // Provide user-friendly messages for common errors
                 if (errorMessage.includes('User not found') || errorMessage.includes('Invalid API key')) {
                     errorMessage = 'Wrong API Key. Enter a valid API Key';
                 } else if (errorMessage.includes('insufficient credits') || errorMessage.includes('quota')) {
